@@ -1,7 +1,7 @@
 // @ts-check
 // Attention: everything looks the same except one; find it before the bar runs out.
-import { useEffect, useMemo } from 'react'
-import { pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
+import { useEffect, useMemo, useState } from 'react'
+import { mark, pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
 
 /** @param {{ settings: { level: number, size: number, ms: number }, content: { a: string, b: string, level: number }[], say: (text: string) => void, onDone: (ok: boolean) => void }} props */
 function Round({ settings: { level, size, ms }, content, say, onDone }) {
@@ -9,17 +9,25 @@ function Round({ settings: { level, size, ms }, content, say, onDone }) {
     const pair = pairFor(content, level)
     return [...shuffle([pair.a, pair.b]), rand(size * size)]
   }, [content, level, size])
+  const [pick, setPick] = useState(/** @type {number | 'timeout' | null} */ (null))
   useEffect(() => say('Find the odd one out!'), [say])
+  /** @param {number | 'timeout'} choice */
+  const choose = (choice) => {
+    if (pick !== null) return
+    setPick(choice)
+    onDone(choice === where)
+  }
   return (
     <>
-      <TimerBar ms={ms} onTimeout={() => onDone(false)} />
+      <TimerBar ms={ms} onTimeout={() => choose('timeout')} />
       <div className="grid" style={{
         gridTemplateColumns: `repeat(${size}, 1fr)`, gap: size > 4 ? 6 : 10, fontSize: `calc(min(100vw - 48px, 540px) / ${size} * .45)`,
       }}>
         {Array.from({ length: size * size }, (_, i) => (
-          <button key={i} className="cell" onClick={() => onDone(i === where)}>{i === where ? odd : same}</button>
+          <button key={i} className={`cell${mark(i, pick, where)}`} disabled={pick !== null} onClick={() => choose(i)}>{i === where ? odd : same}</button>
         ))}
       </div>
+      <p className="why" aria-live="polite">{pick !== null && pick !== where ? `The odd one was ${odd}.` : ''}</p>
     </>
   )
 }

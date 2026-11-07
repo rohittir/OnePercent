@@ -52,7 +52,7 @@ export async function autoplay({ misses = 0 } = {}) {
       const wrong = answered < misses
       /** @param {string} selector */
       const all = (selector) => /** @type {HTMLElement[]} */ ([...area.querySelectorAll(selector)])
-      if (say.startsWith('Your turn')) {
+      if (say.startsWith('Your turn') && !area.querySelector('.cell:disabled')) { // tiles open: Echo's tapping turn
         const tiles = all('.cell')
         const order = seen.splice(0)
         if (wrong) tiles[(order[0] + 1) % tiles.length].click()

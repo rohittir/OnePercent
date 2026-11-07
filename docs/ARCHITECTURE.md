@@ -162,9 +162,22 @@ A game is a folder in `web/src/games/` whose `index.jsx` exports:
 | `rounds` | Rounds per session |
 | `settings(level)` | Turns a level into the game's settings (sequence length, grid size, time limit) |
 | `content` | The content type it reads, if any, for example `pairs` |
-| `Round` | The React component of one round. It gets the settings, the content and `say`, and calls `onDone(true or false)`. |
+| `Round` | The React component of one round. It gets the settings, the content and `say`, takes one answer, calls `onDone(true or false)` once, then marks the pick and the right answer ("Between rounds"). |
 
 Add the folder, list it in `web/src/games/index.js`, and the app shell, sync, themes and the day flow take it as it is. A game imports only React, `games/util.js`, `sound.js` and its own folder.
+
+### Between rounds
+
+Every round runs the same four beats, so a child always sees that a question was answered, what the right answer was, and that a new question has begun (owner's choice of 6 November 2026: a miss moves on by itself; `design/transitions.html` compares this with the earlier flow).
+
+| Beat | What happens |
+| --- | --- |
+| Answer | The round takes one answer; the timer bar stops where it is (`RoundContext` in `games/util.js`). The tapped item gets ✓ or ✗. |
+| Show | After a miss or a timeout, the right answer gets a dashed ✓ and a line says why ("They were different.", "The odd one was 🌵.", "It was 15.", "This one was next."). A cheer floats over the card; the instruction stays in the bubble. |
+| Move | 0.7 s after a right answer, 1.6 s after a miss, the card slides out to the left (0.25 s) and the round's progress dot fills. |
+| Ready | The next card slides in from the right (0.3 s). Its timer starts only once it has settled. |
+
+A game's `Round` keeps its own pick and marks its options with `mark()`; the game screen owns the timing (`HOLD_MS`, `LEAVE_MS`, `ENTER_MS` in `screens/Session.jsx`). With reduced motion the slides become instant.
 
 ### Today's set
 

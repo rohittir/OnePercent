@@ -1,6 +1,6 @@
 // @ts-check
 // Helpers a game may use. A game imports only from here, React, ../../sound.js and its own folder (CLAUDE.md, rule 5).
-import { createElement, useCallback, useEffect, useRef } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useRef } from 'react'
 
 /** @param {number} n @returns {number} a whole number below n */
 export const rand = (n) => Math.floor(Math.random() * n)
@@ -29,15 +29,38 @@ export function useLater() {
 }
 
 /**
- * The bar that runs out; onTimeout fires once when it does, unless the round ended first (it unmounts).
+ * What the round's card is doing, set by the game screen: `answered` once the round is answered (the timer stops where it is),
+ * and `settleMs`, how long the card takes to slide in (the timer starts after it). Without a provider (tests), neither applies.
+ */
+export const RoundContext = createContext({ answered: false, settleMs: 0 })
+
+/**
+ * The bar that runs out; onTimeout fires once when it does, unless the round was answered first or ended.
  * @param {{ ms: number, onTimeout: () => void }} props
  */
 export function TimerBar({ ms, onTimeout }) {
+  const { answered, settleMs } = useContext(RoundContext)
   const latest = useRef(onTimeout)
   latest.current = onTimeout
   useEffect(() => {
-    const t = setTimeout(() => latest.current(), ms)
+    if (answered) return
+    const t = setTimeout(() => latest.current(), ms + settleMs)
     return () => clearTimeout(t)
-  }, [ms])
-  return createElement('div', { className: 'timer', style: { animationDuration: `${ms}ms` } })
+  }, [ms, settleMs, answered])
+  return createElement('div', {
+    className: 'timer',
+    style: { animationDuration: `${ms}ms`, animationDelay: `${settleMs}ms`, animationPlayState: answered ? 'paused' : 'running' },
+  })
+}
+
+/**
+ * The class of an answer option once the round is answered: the pick gets ✓ or ✗; after a miss or a timeout the right one is shown.
+ * @param {unknown} option
+ * @param {unknown} pick null until answered; 'timeout' when the bar ran out
+ * @param {unknown} right the right option
+ */
+export function mark(option, pick, right) {
+  if (pick === null) return ''
+  if (option === pick) return option === right ? ' picked-right' : ' picked-wrong'
+  return option === right && pick !== right ? ' reveal' : ''
 }

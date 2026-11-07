@@ -8,7 +8,7 @@ import { progress } from '@onepercent/shared/progress.js'
 import { pickToday } from '@onepercent/shared/today.js'
 import { contentFor } from '../content.js'
 import { GAMES, SKILL_NAMES } from '../games/index.js'
-import { rand, useLater } from '../games/util.js'
+import { rand, RoundContext, useLater } from '../games/util.js'
 import { buzz, sound } from '../sound.js'
 import { recordResult, today } from '../store.js'
 import { requestSync } from '../sync.js'
@@ -16,6 +16,12 @@ import { useTheme } from '../themes/index.js'
 import { Confetti, Stars } from './parts.jsx'
 
 /** @typedef {import('../games/index.js').Game} Game */
+
+// Between rounds (docs/ARCHITECTURE.md, "Between rounds"): the answer shows on the card for HOLD_MS, the card slides out in
+// LEAVE_MS, the next slides in in ENTER_MS (styles.css), and only then does a timer start.
+const HOLD_MS = { right: 700, wrong: 1600 }
+const LEAVE_MS = 250
+const ENTER_MS = 320
 
 /** @param {{ player: import('../store.js').Player }} props */
 export function Session({ player }) {
@@ -64,6 +70,8 @@ function GameRun({ game, level, theme, grown, content, onFinish, onQuit }) {
   const [round, setRound] = useState(0)
   const [say, setSay] = useState('')
   const [feedback, setFeedback] = useState(/** @type {'right' | 'wrong' | null} */ (null))
+  const [cheer, setCheer] = useState('')
+  const [leaving, setLeaving] = useState(false)
   const [combo, setCombo] = useState(0)
   const correct = useRef(0)
   const answered = useRef(false)
@@ -97,15 +105,21 @@ function GameRun({ game, level, theme, grown, content, onFinish, onQuit }) {
     const lines = theme.words[ok ? 'good' : 'bad']
     setCombo(streak)
     setFeedback(ok ? 'right' : 'wrong')
-    setSay(ok && streak >= 3 ? `🔥 ${streak} in a row!` : lines[rand(lines.length)])
+    // The instruction stays in the bubble; the cheer floats over the card.
+    setCheer(ok && streak >= 3 ? `🔥 ${streak} in a row!` : lines[rand(lines.length)])
     sound(ok ? 'good' : 'bad')
     buzz(ok ? 15 : [60, 40, 60])
     later(() => {
-      answered.current = false
-      setFeedback(null)
-      if (round === game.rounds) onFinish(correct.current / game.rounds)
-      else setRound(round + 1)
-    }, ok ? 700 : 1100)
+      setLeaving(true)
+      later(() => {
+        answered.current = false
+        setFeedback(null)
+        setCheer('')
+        setLeaving(false)
+        if (round === game.rounds) onFinish(correct.current / game.rounds)
+        else setRound(round + 1)
+      }, LEAVE_MS)
+    }, HOLD_MS[ok ? 'right' : 'wrong'])
   }
 
   return (
@@ -113,7 +127,7 @@ function GameRun({ game, level, theme, grown, content, onFinish, onQuit }) {
       <div className="topbar">
         {quit}
         <div className="dots" aria-hidden="true">
-          {Array.from({ length: game.rounds }, (_, j) => <i key={j} className={j < round - 1 ? 'on' : j === round - 1 ? 'on cur' : ''} />)}
+          {Array.from({ length: game.rounds }, (_, j) => <i key={j} className={j < round - 1 ? 'on' : j === round - 1 ? (leaving ? 'on pop' : 'on cur') : ''} />)}
         </div>
         <span className="pill" aria-hidden="true">{game.icon}</span>
       </div>
@@ -122,9 +136,15 @@ function GameRun({ game, level, theme, grown, content, onFinish, onQuit }) {
         <div className="bubble" id="say" aria-live="polite">{say}</div>
       </div>
       <section className={`board${feedback ? ` ${feedback}` : ''}`} id="area">
-        <game.Round key={round} settings={settings} content={content} say={setSay} onDone={done} />
+        {/* One card per round: it slides in, holds the answer, and slides out (styles.css, .qcard). */}
+        <div key={round} className={`qcard ${leaving ? 'leave' : 'enter'}`}>
+          {cheer && <div className={`cheer ${feedback === 'right' ? 'ok' : 'no'}`} role="status">{feedback === 'right' ? '✓ ' : ''}{cheer}</div>}
+          <RoundContext.Provider value={{ answered: feedback !== null, settleMs: ENTER_MS }}>
+            <game.Round settings={settings} content={content} say={setSay} onDone={done} />
+          </RoundContext.Provider>
+        </div>
       </section>
-      <div className="foot">{game.name} · round {round} of {game.rounds}{combo >= 2 ? ` · 🔥 ${combo} in a row` : ''}</div>
+      <div className="foot">{game.name} · question {round} of {game.rounds}{combo >= 2 ? ` · 🔥 ${combo} in a row` : ''}</div>
     </div>
   )
 }

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Between questions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #f3efe6; font-family: system-ui, sans-serif; color: #2b2340; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .lead { color: #6f6787; margin: 0 0 16px; line-height: 1.5; max-width: 720px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 28px; margin: 0 0 20px; }
+  .controls fieldset { border: 0; padding: 0; margin: 0; } .controls legend { font: 600 13px system-ui; color: #6f6787; margin-bottom: 6px; padding: 0; }
+  .seg { display: inline-flex; background: #fff; border-radius: 12px; padding: 3px; box-shadow: 0 2px 0 #0000000f; }
+  .seg button { font: 600 14px system-ui; border: 0; background: none; padding: 8px 12px; border-radius: 9px; cursor: pointer; color: #6f6787; }
+  .seg button[aria-pressed=true] { background: #2b2340; color: #fff; }
+  .row { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+  figure { margin: 0; } figcaption { max-width: 320px; font-size: 14px; color: #6f6787; line-height: 1.45; margin-top: 12px; }
+  figcaption b { color: #2b2340; display: block; font-size: 16px; margin-bottom: 2px; }
+
+  /* A phone running the app's Percy theme */
+  .phone { width: 320px; height: 640px; border-radius: 44px; border: 10px solid #15121f; overflow: hidden; position: relative; box-shadow: 0 18px 40px #0002;
+           background: linear-gradient(#7dd3fc, #e0f2fe 60%); font-family: Fredoka, system-ui, sans-serif; display: flex; flex-direction: column; padding: 34px 14px 16px; gap: 10px; }
+  .phone::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 86px; height: 22px; border-radius: 12px; background: #15121f; z-index: 9; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .pill { background: #fff; border-radius: 999px; padding: 4px 10px; min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; box-shadow: 0 3px 0 #0000001a; }
+  .dots { display: flex; gap: 5px; } .dots i { width: 9px; height: 9px; border-radius: 5px; background: #2b234033; transition: background .2s, width .2s; }
+  .dots i.on { background: #ec4899; } .dots i.cur { width: 22px; background: #ec4899; } .dots i.pop { animation: dotpop .35s; }
+  .coach { display: flex; align-items: center; gap: 10px; min-height: 60px; }
+  .coach svg { width: 52px; flex: none; }
+  .bubble { background: #fff; border-radius: 16px; padding: 8px 12px; font-weight: 600; font-size: 16px; box-shadow: 0 3px 0 #0000001a; position: relative; }
+  .bubble::after { content: ""; position: absolute; left: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-right-color: #fff; border-left: 0; }
+  .stage { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: center; }
+  .card { border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 14px; transition: background .2s; position: relative; }
+  .foot { text-align: center; font-weight: 600; color: #6f6787; font-size: 14px; min-height: 18px; }
+  .timer { height: 9px; border-radius: 5px; background: #ffc93c; width: 100%; animation: drain linear forwards; }
+  .pair { display: flex; justify-content: center; gap: 14px; } .pair span { width: 104px; aspect-ratio: 1; border-radius: 22px; background: #fff; display: grid; place-items: center; font-size: 56px; box-shadow: 0 5px 0 #0000001a; }
+  .yn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .yn button { font: 700 19px Fredoka, sans-serif; border: 0; border-radius: 16px; padding: 13px 6px; color: #fff; cursor: pointer; position: relative; }
+  .yes { background: #22c55e; box-shadow: 0 5px 0 #15803d; } .nope { background: #f43f5e; box-shadow: 0 5px 0 #be123c; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+  .grid button { aspect-ratio: 1; border: 0; border-radius: 22%; background: #c4b5fd; box-shadow: 0 5px 0 #a78bfa; font-size: 34px; cursor: pointer; position: relative; }
+  /* An opaque text colour: a disabled button's default grey is translucent, and colour emoji take its transparency. */
+  .grid button { color: #2b2340; } button:disabled { cursor: default; opacity: 1; }
+  .done { text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .done b { font-size: 26px; } .again { font: 700 18px Fredoka, sans-serif; border: 0; border-radius: 16px; padding: 12px 20px; background: #ffc93c; color: #5a3b00; box-shadow: 0 5px 0 #e0a100; cursor: pointer; }
+
+  /* NOW: the whole board tints; the next question replaces this one in the same frame */
+  .now .card.right { background: #22c55e33; } .now .card.wrong { background: #f43f5e33; animation: shake .35s; }
+
+  /* PROPOSED: feedback on the thing tapped, the right answer shown, then the card slides on */
+  .proposed .card.enter { animation: enter .3s ease-out both; }
+  .proposed .card.leave { animation: leave .25s ease-in both; }
+  .picked-right { outline: 4px solid #16a34a; outline-offset: 3px; animation: tap .3s; }
+  .picked-wrong { outline: 4px solid #e11d48; outline-offset: 3px; animation: shake .35s; }
+  .reveal { outline: 4px dashed #16a34a; outline-offset: 3px; animation: glow 1s ease-in-out infinite; }
+  .reveal::after, .picked-right::after { content: "✓"; position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; border-radius: 50%; background: #16a34a; color: #fff; font: 700 15px/24px system-ui; text-align: center; }
+  .picked-wrong::after { content: "✗"; position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; border-radius: 50%; background: #e11d48; color: #fff; font: 700 15px/24px system-ui; text-align: center; }
+  .cheer { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 17px;
+           white-space: nowrap; box-shadow: 0 4px 0 #0000001f; animation: cheer .3s ease-out both; z-index: 2; }
+  .cheer.ok { background: #16a34a; } .cheer.no { background: #e11d48; }
+  .why { text-align: center; font-weight: 600; color: #2b2340; margin: 0; min-height: 20px; }
+  .next { font: 700 18px Fredoka, sans-serif; border: 0; border-radius: 16px; padding: 12px; background: #ffc93c; color: #5a3b00; box-shadow: 0 5px 0 #e0a100; cursor: pointer; animation: cheer .25s both; }
+
+  @keyframes drain { to { width: 0; } }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  @keyframes tap { 50% { transform: scale(1.06); } }
+  @keyframes glow { 50% { outline-color: #86efac; } }
+  @keyframes enter { from { transform: translateX(56px); opacity: 0; } }
+  @keyframes leave { to { transform: translateX(-56px); opacity: 0; } }
+  @keyframes cheer { from { transform: translate(-50%, 8px) scale(.8); opacity: 0; } }
+  @keyframes dotpop { 50% { transform: scale(1.6); } }
+  @media (prefers-reduced-motion: reduce) { .proposed .card.enter, .proposed .card.leave { animation-name: fade; } @keyframes fade { from { opacity: 0; } } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Between questions: now vs proposed</h1>
+  <p class="lead">Both phones ask the same six questions, including two in a row with the same symbols. Tap answers on each, and get some wrong on purpose.
+    The timer, feedback and move to the next question follow the rules underneath each phone.</p>
+  <div class="controls">
+    <fieldset><legend>Game</legend><div class="seg" data-key="game"><button data-v="same" aria-pressed="true">Same or Not</button><button data-v="odd">Odd One Out</button></div></fieldset>
+    <fieldset><legend>Proposed: after a wrong answer</legend><div class="seg" data-key="wrong"><button data-v="auto" aria-pressed="true">Moves on by itself (1.6 s)</button><button data-v="next">Child taps "Next"</button></div></fieldset>
+  </div>
+  <div class="row">
+    <figure><div class="phone now" id="now"></div>
+      <figcaption><b>Now</b>The whole board tints, the bubble swaps to a cheer, the timer keeps running. After 0.7 s (1.1 s if wrong) the next question replaces this one in the same frame, and its timer starts at once. A wrong answer never shows the right one.</figcaption></figure>
+    <figure><div class="phone proposed" id="proposed"></div>
+      <figcaption><b>Proposed</b>1. The tap: the timer stops, the tapped item gets ✓ or ✗. 2. A miss also shows the right answer and says why. 3. The card slides away, the progress dot fills, the next card slides in. 4. The timer starts only once the card has settled. The instruction stays put; cheers float over the card.</figcaption></figure>
+  </div>
+</div>
+
+<script>
+// Percy, small (the app's buddy).
+const PERCY = '<svg viewBox="0 -20 100 120" aria-hidden="true"><path d="M50 30C50 20 52 13 56 9" stroke="#22a55a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M55 11C64 2 77 6 77 12C68 17 60 16 55 11Z" fill="#4ade80"/><path d="M51 17C42 9 31 12 31 18C40 22 47 21 51 17Z" fill="#4ade80"/><ellipse cx="50" cy="63" rx="38" ry="33" fill="#ffc93c"/><ellipse cx="50" cy="73" rx="22" ry="15" fill="#ffe08a"/><circle cx="37" cy="57" r="6.5" fill="#2b2340"/><circle cx="63" cy="57" r="6.5" fill="#2b2340"/><circle cx="39" cy="55" r="2.2" fill="#fff"/><circle cx="65" cy="55" r="2.2" fill="#fff"/><path d="M42 71Q50 79 58 71" stroke="#2b2340" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>'
+
+// The same questions on both phones. Rounds 1–2 and 5–6 repeat their symbols, as random rounds sometimes do.
+const GAMES = {
+  same: { name: 'Same or Not?', icon: '⚡', ask: 'Same or not? Be quick!', ms: 3000,
+    rounds: [['🍎', '🍎'], ['🍎', '🍎'], ['🐶', '🌵'], ['⭐', '⭐'], ['🐱', '🐯'], ['🐱', '🐯']] },
+  odd: { name: 'Odd One Out', icon: '🔍', ask: 'Find the odd one out!', ms: 6000,
+    rounds: [['🐶', '🌵', 4], ['🐶', '🌵', 7], ['🍋', '🍌', 0], ['🍋', '🍌', 5], ['O', 'Q', 8], ['b', 'd', 2]] },
+}
+const CHEERS = ['Nice!', 'Wow!', 'You got it!', 'Super!']
+const options = { game: 'same', wrong: 'auto' }
+
+function phone(root, proposed) {
+  let game, i, score, combo, card, timer, busy
+  const later = []
+  const wait = (fn, ms) => later.push(setTimeout(fn, ms))
+  root.innerHTML = `<div class="top"><span class="pill">✕</span><div class="dots"></div><span class="pill ic"></span></div>
+    <div class="coach">${PERCY}<div class="bubble"></div></div><div class="stage"></div><div class="foot"></div>`
+  const $ = (q) => root.querySelector(q)
+  const bubble = $('.bubble'), stage = $('.stage'), dots = $('.dots'), foot = $('.foot')
+
+  function start() {
+    later.splice(0).forEach(clearTimeout)
+    game = GAMES[options.game]; i = 0; score = 0; combo = 0
+    $('.ic').textContent = game.icon
+    dots.innerHTML = game.rounds.map(() => '<i></i>').join('')
+    show()
+  }
+
+  function show() {
+    busy = false
+    bubble.textContent = game.ask
+    ;[...dots.children].forEach((d, k) => { d.className = k < i ? 'on' : k === i ? 'cur' : '' })
+    foot.textContent = proposed ? `Question ${i + 1} of ${game.rounds.length}` : `${game.name} · round ${i + 1} of ${game.rounds.length}`
+    const r = game.rounds[i]
+    let body
+    if (options.game === 'same') {
+      body = `<div class="pair"><span>${r[0]}</span><span>${r[1]}</span></div>
+        <div class="yn"><button class="yes" data-ok="${r[0] === r[1]}">✓ Same</button><button class="nope" data-ok="${r[0] !== r[1]}">✗ Different</button></div>`
+    } else {
+      body = `<div class="grid">${Array.from({ length: 9 }, (_, k) => `<button data-ok="${k === r[2]}">${k === r[2] ? r[1] : r[0]}</button>`).join('')}</div>`
+    }
+    // Proposed: the timer starts when the card has settled (after its 0.3 s entrance).
+    const settle = proposed ? 320 : 0
+    stage.innerHTML = `<div class="card${proposed ? ' enter' : ''}"><div class="timer" style="animation-duration:${game.ms}ms;animation-delay:${settle}ms"></div>${body}${proposed ? '<p class="why"></p>' : ''}</div>`
+    card = stage.firstElementChild
+    timer = setTimeout(() => answer(null), game.ms + settle)
+    card.querySelectorAll('[data-ok]').forEach((b) => b.onclick = () => answer(b))
+  }
+
+  function answer(picked) {
+    if (busy) return
+    busy = true
+    clearTimeout(timer)
+    const ok = picked?.dataset.ok === 'true'
+    if (ok) score++
+    combo = ok ? combo + 1 : 0
+    const cheer = ok ? (combo >= 3 ? `🔥 ${combo} in a row!` : CHEERS[i % CHEERS.length]) : picked ? 'Not quite' : 'Too slow!'
+    if (!proposed) {
+      card.classList.add(ok ? 'right' : 'wrong')
+      bubble.textContent = cheer
+      // Now: the timer bar keeps draining; then a hard cut.
+      return wait(nextRound, ok ? 700 : 1100)
+    }
+    const bar = card.querySelector('.timer')
+    bar.style.width = getComputedStyle(bar).width
+    bar.style.animation = 'none'
+    card.querySelectorAll('[data-ok]').forEach((b) => { b.disabled = true })
+    if (picked) picked.classList.add(ok ? 'picked-right' : 'picked-wrong')
+    if (!ok) {
+      card.querySelector('[data-ok="true"]').classList.add('reveal')
+      const r = game.rounds[i]
+      card.querySelector('.why').textContent = options.game === 'same' ? (r[0] === r[1] ? 'They were the same.' : 'They were different.') : `The odd one was ${r[1]}.`
+    }
+    card.insertAdjacentHTML('afterbegin', `<div class="cheer ${ok ? 'ok' : 'no'}">${ok ? '✓ ' : ''}${cheer}</div>`)
+    if (!ok && options.wrong === 'next') {
+      card.insertAdjacentHTML('beforeend', '<button class="next">Next ▶</button>')
+      card.querySelector('.next').onclick = leave
+      return
+    }
+    wait(leave, ok ? 700 : 1600)
+  }
+
+  function leave() {
+    const d = dots.children[i]
+    d.className = 'on pop'
+    card.classList.remove('enter')
+    card.classList.add('leave')
+    wait(nextRound, 250)
+  }
+
+  function nextRound() {
+    i++
+    if (i < game.rounds.length) return show()
+    ;[...dots.children].forEach((d) => { d.className = 'on' })
+    bubble.textContent = `${score} of ${game.rounds.length}!`
+    foot.textContent = ''
+    stage.innerHTML = `<div class="done"><b>${score} of ${game.rounds.length}</b><button class="again">Play again ↻</button></div>`
+    stage.querySelector('.again').onclick = start
+  }
+
+  return { start }
+}
+
+const phones = [phone(document.getElementById('now'), false), phone(document.getElementById('proposed'), true)]
+document.querySelectorAll('.seg').forEach((seg) => seg.querySelectorAll('button').forEach((b) => b.onclick = () => {
+  seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+  options[seg.dataset.key] = b.dataset.v
+  phones.forEach((p) => p.start())
+}))
+phones.forEach((p) => p.start())
+</script>
+</body>
+</html>

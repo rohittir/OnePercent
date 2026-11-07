@@ -29,8 +29,8 @@ test('every game in the registry has the contract the app needs', () => {
   expect(new Set(GAMES.map((g) => g.id)).size).toBe(GAMES.length)
 })
 
-test('echo: tapping the shown order back is right; a wrong tile is wrong', () => {
-  const { onDone, say, cells } = play('echo', 0)
+/** Steps through Echo's flashes and returns the order it showed. @param {() => Element[]} cells */
+function watch(cells) {
   const seen = []
   let last = -1
   for (let t = 0; t < 8000 && cells().some((c) => /** @type {HTMLButtonElement} */ (c).disabled); t += 50) {
@@ -39,39 +39,61 @@ test('echo: tapping the shown order back is right; a wrong tile is wrong', () =>
     if (lit >= 0 && lit !== last) seen.push(lit)
     last = lit
   }
+  return seen
+}
+
+test('echo: tapping the shown order back is right; a wrong tile is wrong and the due tile is shown', () => {
+  const { onDone, say, cells } = play('echo', 0)
+  const seen = watch(cells)
   expect(seen).toHaveLength(3) // level 0: three tiles
   expect(say).toHaveBeenLastCalledWith('Your turn! Tap them in order')
   seen.forEach((i) => fireEvent.click(cells()[i]))
   expect(onDone).toHaveBeenCalledExactlyOnceWith(true)
+  expect(cells()[seen[2]].classList.contains('picked-right')).toBe(true)
 
+  cleanup()
   const second = play('echo', 0)
-  act(() => { vi.advanceTimersByTime(8000) })
-  fireEvent.click(second.cells()[0])
-  fireEvent.click(second.cells()[1])
-  fireEvent.click(second.cells()[2])
-  fireEvent.click(second.cells()[3]) // four taps for three tiles: one of them is wrong
-  expect(second.onDone.mock.calls.flat()).toContain(false)
+  const order = watch(second.cells)
+  const wrong = (order[0] + 1) % 9
+  fireEvent.click(second.cells()[wrong])
+  fireEvent.click(second.cells()[order[0]]) // too late: the round is answered
+  expect(second.onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(second.cells()[wrong].classList.contains('picked-wrong')).toBe(true)
+  expect(second.cells()[order[0]].classList.contains('reveal')).toBe(true)
+  expect(second.container.querySelector('.why')?.textContent).toBe('This one was next.')
 })
 
-test('odd one out: the different cell is right; the bar running out is wrong', () => {
-  const { onDone, cells } = play('odd-one-out', 0)
+test('odd one out: the different cell is right; a miss shows it; the bar running out is wrong', () => {
+  const { container, onDone, cells } = play('odd-one-out', 0)
   const counts = new Map()
   cells().forEach((c) => counts.set(c.textContent, (counts.get(c.textContent) ?? 0) + 1))
   expect(cells()).toHaveLength(9)
-  fireEvent.click(/** @type {Element} */ (cells().find((c) => counts.get(c.textContent) === 1)))
-  expect(onDone).toHaveBeenCalledWith(true)
+  const odd = /** @type {Element} */ (cells().find((c) => counts.get(c.textContent) === 1))
+  const plain = /** @type {Element} */ (cells().find((c) => counts.get(c.textContent) > 1))
+  fireEvent.click(plain)
+  fireEvent.click(odd) // a second tap changes nothing
+  expect(onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(odd.classList.contains('reveal')).toBe(true)
+  expect(container.querySelector('.why')?.textContent).toBe(`The odd one was ${odd.textContent}.`)
+  act(() => { vi.advanceTimersByTime(10_000) })
+  expect(onDone).toHaveBeenCalledTimes(1) // answered: the bar no longer counts
 
+  cleanup()
   const slow = play('odd-one-out', 0)
   act(() => { vi.advanceTimersByTime(10_000) })
   expect(slow.onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(slow.container.querySelectorAll('.reveal')).toHaveLength(1)
 })
 
-test("what's next: exactly one choice is right", () => {
+test("what's next: one tap answers; the ? fills with the answer, and a miss shows the right choice", () => {
   const { container, onDone } = play('whats-next', 30)
   const buttons = [...container.querySelectorAll('.choices button')]
   expect(buttons).toHaveLength(4)
   buttons.forEach((b) => fireEvent.click(b))
-  expect(onDone.mock.calls.flat().filter(Boolean)).toHaveLength(1)
+  expect(onDone).toHaveBeenCalledTimes(1)
+  const answer = container.querySelector('.chip.q')?.textContent
+  const right = buttons.find((b) => b.textContent === answer)
+  expect(right?.className).toMatch(onDone.mock.calls[0][0] ? /picked-right/ : /reveal/)
 })
 
 test('same or not: the honest answer is right', () => {
@@ -79,6 +101,7 @@ test('same or not: the honest answer is right', () => {
   const [a, b] = [...container.querySelectorAll('.pair span')].map((s) => s.textContent)
   fireEvent.click(/** @type {Element} */ (container.querySelector(a === b ? '.yes' : '.nope')))
   expect(onDone).toHaveBeenCalledWith(true)
+  expect(container.querySelector('.picked-right')).toBeTruthy()
 })
 
 test("what's next rules: six whole numbers, never negative; four different choices with the answer", () => {

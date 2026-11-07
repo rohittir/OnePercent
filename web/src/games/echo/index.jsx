@@ -16,6 +16,8 @@ function Round({ settings: { len, flash }, say, onDone }) {
   }, [len])
   const [lit, setLit] = useState(-1)
   const [turn, setTurn] = useState(false)
+  // Once answered: the last tile tapped, whether it was right, and the tile that was due.
+  const [pick, setPick] = useState(/** @type {{ at: number, ok: boolean, due: number } | null} */ (null))
   const pos = useRef(0)
   const later = useLater()
 
@@ -36,19 +38,35 @@ function Round({ settings: { len, flash }, say, onDone }) {
 
   /** @param {number} i */
   const tap = (i) => {
+    if (pick) return
     tone(i)
+    const due = seq[pos.current]
+    // Answered: no tile stays lit (a quick earlier tap's highlight may still be on).
+    if (i !== due) {
+      setLit(-1)
+      setPick({ at: i, ok: false, due })
+      return onDone(false)
+    }
+    if (++pos.current === seq.length) {
+      setLit(-1)
+      setPick({ at: i, ok: true, due })
+      return onDone(true)
+    }
     setLit(i)
     later(() => setLit(-1), 180)
-    if (i !== seq[pos.current]) return onDone(false)
-    if (++pos.current === seq.length) onDone(true)
   }
 
+  /** @param {number} i */
+  const mark = (i) => (!pick ? '' : i === pick.at ? (pick.ok ? ' picked-right' : ' picked-wrong') : !pick.ok && i === pick.due ? ' reveal' : '')
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-      {Array.from({ length: 9 }, (_, i) => (
-        <button key={i} className={`cell${lit === i ? ' lit' : ''}`} disabled={!turn} aria-label={`tile ${i + 1}`} onClick={() => tap(i)} />
-      ))}
-    </div>
+    <>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        {Array.from({ length: 9 }, (_, i) => (
+          <button key={i} className={`cell${lit === i ? ' lit' : ''}${mark(i)}`} disabled={!turn || pick !== null} aria-label={`tile ${i + 1}`} onClick={() => tap(i)} />
+        ))}
+      </div>
+      <p className="why" aria-live="polite">{pick && !pick.ok ? 'This one was next.' : ''}</p>
+    </>
   )
 }
 

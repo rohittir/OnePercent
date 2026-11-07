@@ -67,13 +67,37 @@ a.tile { color: #fff; }
 .coach .percy { width: 64px; }
 .coach .bubble::after { left: -8px; top: 50%; bottom: auto; margin: -8px 0 0; border: 8px solid transparent; border-right-color: #fff; border-left: 0; }
 .coach .bubble:empty { visibility: hidden; }
-.board { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; width: 100%; max-width: 540px; margin: 0 auto; border-radius: 24px; padding: 8px; transition: background .2s; }
-.board.right { background: #22c55e33; } .board.wrong { background: #f43f5e33; animation: shake .35s; }
+.board { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 540px; margin: 0 auto; }
 .board.right, .board.wrong { pointer-events: none; }
+/* Between rounds: the card slides in (ENTER_MS in Session.jsx), holds the answer, slides out (LEAVE_MS). */
+.qcard { position: relative; display: flex; flex-direction: column; gap: 18px; padding: 8px; }
+.qcard.enter { animation: enter .3s ease-out both; }
+.qcard.leave { animation: leave .25s ease-in both; }
+@keyframes enter { from { transform: translateX(48px); opacity: 0; } }
+@keyframes leave { to { transform: translateX(-48px); opacity: 0; } }
+/* The answer on the card: ✓ or ✗ on what was tapped; after a miss, the right one in a dashed ring. */
+.cell, .chunk { position: relative; }
+.picked-right { outline: 4px solid #16a34a; outline-offset: 3px; animation: tap .3s; }
+.picked-wrong { outline: 4px solid #e11d48; outline-offset: 3px; animation: shake .35s; }
+.reveal { outline: 4px dashed #16a34a; outline-offset: 3px; animation: glow 1s ease-in-out infinite; }
+.picked-right::after, .picked-wrong::after, .reveal::after { position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; border-radius: 50%;
+  color: #fff; font: 700 15px/24px system-ui, sans-serif; text-align: center; z-index: 1; }
+.picked-right::after, .reveal::after { content: "✓"; background: #16a34a; }
+.picked-wrong::after { content: "✗"; background: #e11d48; }
+.cheer { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; color: #fff; font-weight: 700;
+  font-size: 17px; white-space: nowrap; box-shadow: 0 4px 0 #0000001f; animation: cheer .3s ease-out both; z-index: 2; }
+.cheer.ok { background: #16a34a; } .cheer.no { background: #e11d48; }
+.why { text-align: center; font-weight: 600; margin: 0; min-height: 1.4em; }
+.chip.q.filled { background: #22c55e; color: #fff; }
+.dots i.pop { animation: dotpop .35s; }
+@keyframes tap { 50% { transform: scale(1.06); } }
+@keyframes glow { 50% { outline-color: #86efac; } }
+@keyframes cheer { from { transform: translate(-50%, 8px) scale(.8); opacity: 0; } }
+@keyframes dotpop { 50% { transform: scale(1.6); } }
 .foot { text-align: center; font-weight: 600; color: var(--muted); }
 .grid { display: grid; gap: 10px; }
 .cell { aspect-ratio: 1; border-radius: 22%; background: var(--tile); box-shadow: 0 5px 0 var(--tile-edge); display: grid; place-items: center; color: var(--ink); transition: transform .1s, background .1s; }
-.cell:disabled { cursor: default; }
+.cell:disabled, .chunk:disabled { cursor: default; opacity: 1; }
 .cell.lit { background: var(--lit); box-shadow: 0 5px 0 var(--cta-edge), 0 0 28px var(--lit); transform: scale(1.06); }
 .seq { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .chip { background: var(--chip); color: var(--chip-ink); border-radius: 14px; padding: 8px 12px; font-weight: 700; font-size: 28px; min-width: 54px; text-align: center; }
