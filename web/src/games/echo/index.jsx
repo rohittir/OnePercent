@@ -2,7 +2,7 @@
 // Working memory: tiles light up in order; tap them back.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { tone } from '../../sound.js'
-import { rand, shrink, useLater } from '../util.js'
+import { demoNext, rand, shrink, useLater } from '../util.js'
 
 /** @param {{ settings: { len: number, flash: number }, say: (text: string) => void, onDone: (ok: boolean) => void }} props */
 function Round({ settings: { len, flash }, say, onDone }) {
@@ -62,7 +62,8 @@ function Round({ settings: { len, flash }, say, onDone }) {
     <>
       <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {Array.from({ length: 9 }, (_, i) => (
-          <button key={i} className={`cell${lit === i ? ' lit' : ''}${mark(i)}`} disabled={!turn || pick !== null} aria-label={`tile ${i + 1}`} onClick={() => tap(i)} />
+          <button key={i} className={`cell${lit === i ? ' lit' : ''}${mark(i)}`} disabled={!turn || pick !== null} aria-label={`tile ${i + 1}`}
+            {...demoNext(turn && pick === null && i === seq[pos.current])} onClick={() => tap(i)} />
         ))}
       </div>
       <p className="why" aria-live="polite">{pick && !pick.ok ? 'This one was next.' : ''}</p>

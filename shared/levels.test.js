@@ -14,7 +14,7 @@ test('starsFor: 3 from 90%, 2 from 60%, else 1', () => {
 })
 
 test('startLevels: every skill, 5 steps per year over 7', () => {
-  assert.deepEqual(startLevels(7), { memory: 0, focus: 0, logic: 0, speed: 0 })
+  assert.deepEqual(startLevels(7), { memory: 0, focus: 0, logic: 0, speed: 0, switch: 0, stop: 0, plan: 0 })
   assert.deepEqual(Object.keys(startLevels(14)), [...SKILLS])
   assert.equal(startLevels(14).logic, 35)
 })

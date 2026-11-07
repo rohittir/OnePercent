@@ -10,7 +10,7 @@ const profile = { name: 'Maya', age: 8, muted: false, updatedAt: 1 }
 test('a new player starts at the levels of their age, needs a sync, and is current', () => {
   const p = addPlayer({ name: ' Maya ', age: 8, pin: '4821' })
   expect(p.name).toBe('Maya')
-  expect(p.startLevels).toEqual({ memory: 5, focus: 5, logic: 5, speed: 5 })
+  expect(p.startLevels).toEqual({ memory: 5, focus: 5, logic: 5, speed: 5, switch: 5, stop: 5, plan: 5 })
   expect(p.code).toBeNull()
   expect(getState().current).toBe(p.localId)
   expect(JSON.parse(localStorage.getItem('onepercent:v1') ?? '{}').players).toHaveLength(1)
@@ -69,4 +69,5 @@ test('joining a code already on the device merges into it', () => {
   expect(getState().players).toHaveLength(1)
   expect(getState().current).toBe(first)
   expect(findPlayer(/** @type {string} */ (first))?.token).toBe('b')
+  expect(findPlayer(/** @type {string} */ (first))?.startLevels).toMatchObject({ memory: 5, plan: 5 }) // a skill added later starts at the age's level
 })

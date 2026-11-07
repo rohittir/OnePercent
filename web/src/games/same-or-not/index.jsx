@@ -1,7 +1,7 @@
 // @ts-check
 // Processing speed: are the two the same? Answer before the bar runs out.
 import { useEffect, useMemo, useState } from 'react'
-import { mark, pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
+import { demoNext, mark, pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
 
 /** @param {{ settings: { level: number, ms: number }, content: { a: string, b: string, level: number }[], say: (text: string) => void, onDone: (ok: boolean) => void }} props */
 function Round({ settings: { level, ms }, content, say, onDone }) {
@@ -25,8 +25,8 @@ function Round({ settings: { level, ms }, content, say, onDone }) {
       <TimerBar ms={ms} onTimeout={() => choose('timeout')} />
       <div className="pair"><span>{left}</span><span>{right}</span></div>
       <div className="yn">
-        <button className={`chunk yes${mark('same', pick, truth)}`} disabled={pick !== null} onClick={() => choose('same')}>✓ Same</button>
-        <button className={`chunk nope${mark('different', pick, truth)}`} disabled={pick !== null} onClick={() => choose('different')}>✗ Different</button>
+        <button className={`chunk yes${mark('same', pick, truth)}`} disabled={pick !== null} {...demoNext(pick === null && same)} onClick={() => choose('same')}>✓ Same</button>
+        <button className={`chunk nope${mark('different', pick, truth)}`} disabled={pick !== null} {...demoNext(pick === null && !same)} onClick={() => choose('different')}>✗ Different</button>
       </div>
       <p className="why" aria-live="polite">{pick !== null && pick !== truth ? `They were ${truth}.` : ''}</p>
     </>

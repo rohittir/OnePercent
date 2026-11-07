@@ -4,6 +4,8 @@ import { createContext, createElement, useCallback, useContext, useEffect, useRe
 
 /** @param {number} n @returns {number} a whole number below n */
 export const rand = (n) => Math.floor(Math.random() * n)
+/** @template T @param {readonly T[]} items @returns {T} one of them */
+export const pick = (items) => items[rand(items.length)]
 /** @template T @param {T[]} items @returns {T[]} a shuffled copy */
 export const shuffle = (items) => items.map((v) => /** @type {[number, T]} */ ([Math.random(), v])).sort((x, y) => x[0] - y[0]).map((v) => v[1])
 /** 1% less time per level, never under `min`. @param {number} ms @param {number} level @param {number} min */
@@ -64,3 +66,17 @@ export function mark(option, pick, right) {
   if (option === pick) return option === right ? ' picked-right' : ' picked-wrong'
   return option === right && pick !== right ? ' reveal' : ''
 }
+
+// Shapes for the games that sort or match them.
+export const SHAPES = ['circle', 'square', 'triangle']
+export const COLOURS = { red: '#ef4444', blue: '#3b82f6', yellow: '#f59e0b' }
+/** @param {{ shape: string, colour: string, size: number }} props */
+export const Shape = ({ shape, colour, size }) =>
+  createElement('i', { className: `shape ${shape}`, style: { width: size, height: size, background: COLOURS[/** @type {keyof typeof COLOURS} */ (colour)] }, 'aria-hidden': true })
+
+/**
+ * Marks the next right move, which Percy's ghost hand taps in "Watch me first" (screens/Session.jsx) and the end-to-end tests
+ * follow. Spread it on the element: {...demoNext(isNext)}.
+ * @param {boolean} isNext
+ */
+export const demoNext = (isNext) => (isNext ? { 'data-demo-next': '' } : {})

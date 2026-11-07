@@ -16,11 +16,13 @@ export const dayNumber = (date) => Math.floor(Date.parse(`${date}T00:00:00Z`) / 
  * never falls, and does not depend on the order plays arrive in.
  * @param {Record<string, number>} startLevels
  * @param {Days} days
+ * @param {string} [before] only days before this date (the levels a day starts with)
  * @returns {Record<string, number>}
  */
-export function levelsOf(startLevels, days) {
+export function levelsOf(startLevels, days, before) {
   const levels = { ...startLevels }
-  for (const results of Object.values(days)) {
+  for (const [date, results] of Object.entries(days)) {
+    if (before && date >= before) continue
     for (const raw of Object.values(results)) {
       const { skill, top } = normalizeResult(raw)
       if (top >= 0) levels[skill] = Math.max(levels[skill] ?? 0, top + 1)

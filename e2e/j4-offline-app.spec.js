@@ -1,11 +1,12 @@
 // @ts-check
 // J4: the built app, under the CSP CloudFront sends, keeps itself for offline use and opens and plays with the network off.
 import { expect, test } from '@playwright/test'
-import { newPlayer, phone } from './helpers.js'
+import { fixDay, newPlayer, phone } from './helpers.js'
 
 test('J4: the installed app opens and plays offline, with nothing blocked by the CSP', async ({ browser }) => {
   const context = await browser.newContext({ ...phone, baseURL: 'http://localhost:5181' })
   const page = await context.newPage()
+  await fixDay(page)
   /** @type {string[]} */
   const blocked = []
   page.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy/i.test(m.text())) blocked.push(m.text()) })

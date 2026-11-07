@@ -67,3 +67,12 @@ The build plan for `docs/ARCHITECTURE.md`. Work in order; each task ends with a 
 | OP-M7-02 ✓ | Unlimited retries: every game on Home is a link to play it again, at any time; each play merges into the day (best score, highest level passed) | Vitest; J1 |
 | OP-M7-03 ✓ | A pass (80%+) unlocks the next level at once; a level is one above the highest passed and never falls. Results become `{ skill, best, top, playedAt }`; the old shape is read as the new one. | `npm test -w shared`; `npm run test:int`; J1, J3 |
 | OP-M7-04 ✓ | Smooth rounds: one answer per round, the timer stops on it, ✓ or ✗ on the tapped item, the right answer shown after a miss, the card slides out and the next slides in, and the timer starts once it settles. A miss moves on by itself after 1.6 s (owner's choice). | Vitest (games); J1 to J3 |
+
+## M8 New games and Watch me first ✓ (7 November 2026)
+
+| Task | Does | Check |
+| --- | --- | --- |
+| OP-M8-01 ✓ | Skills `switch`, `stop`, `plan`; the daily mix of 4 (rotation, weakest skill in); start levels filled in for players made before | `npm test -w shared` |
+| OP-M8-02 ✓ | Sort Switch, Firefly Catch, Route Planner, Pattern Grid as plug-ins, from `design/new-games.html` | Vitest (games) |
+| OP-M8-03 ✓ | Watch me first: the demo round, the ghost hand, `demoNext()` in every game; "Skip the demo" and "Show me how" | Vitest (App); J5 |
+| OP-M8-04 ✓ | Home: "More games" for the games outside today's set | Vitest (App); J5 |

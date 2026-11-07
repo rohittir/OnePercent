@@ -1,9 +1,10 @@
 // @ts-check
 // J1: with no backend at all, a child misses, retries, passes at 80%+, moves up a level at once, and plays the rest of today's games.
 import { expect, test } from '@playwright/test'
-import { autoplay, newPlayer } from './helpers.js'
+import { autoplay, fixDay, newPlayer } from './helpers.js'
 
 test('J1: retries are unlimited, a pass unlocks the next level at once, all with no backend', async ({ page }) => {
+  await fixDay(page)
   await page.route('**/api/**', (route) => route.abort())
   await newPlayer(page, { name: 'Maya', age: 8 })
   const echoTile = page.locator('a.tile', { hasText: 'Echo' })

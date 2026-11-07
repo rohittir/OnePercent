@@ -1,7 +1,7 @@
 // @ts-check
 // Attention: everything looks the same except one; find it before the bar runs out.
 import { useEffect, useMemo, useState } from 'react'
-import { mark, pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
+import { demoNext, mark, pairFor, rand, shrink, shuffle, TimerBar } from '../util.js'
 
 /** @param {{ settings: { level: number, size: number, ms: number }, content: { a: string, b: string, level: number }[], say: (text: string) => void, onDone: (ok: boolean) => void }} props */
 function Round({ settings: { level, size, ms }, content, say, onDone }) {
@@ -24,7 +24,7 @@ function Round({ settings: { level, size, ms }, content, say, onDone }) {
         gridTemplateColumns: `repeat(${size}, 1fr)`, gap: size > 4 ? 6 : 10, fontSize: `calc(min(100vw - 48px, 540px) / ${size} * .45)`,
       }}>
         {Array.from({ length: size * size }, (_, i) => (
-          <button key={i} className={`cell${mark(i, pick, where)}`} disabled={pick !== null} onClick={() => choose(i)}>{i === where ? odd : same}</button>
+          <button key={i} className={`cell${mark(i, pick, where)}`} disabled={pick !== null} {...demoNext(pick === null && i === where)} onClick={() => choose(i)}>{i === where ? odd : same}</button>
         ))}
       </div>
       <p className="why" aria-live="polite">{pick !== null && pick !== where ? `The odd one was ${odd}.` : ''}</p>

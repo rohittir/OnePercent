@@ -38,6 +38,7 @@ The owner made these on 6 November 2026. Don't reopen them.
 | Themes | Percy and pals for ages up to 10, Brain galaxy above 10 |
 | Content | New games ship in code releases. Their content is uploaded by the developer apart from a release. |
 | Layout | Phone first, iPad second, desktop last |
+| Games (7 November 2026) | Eight games over seven skills (memory, focus, logic, speed, switch, stop, plan). Four a day from a daily mix that rotates and always includes the weakest skill; the rest stay playable. A game's first play opens with "Watch me first". |
 | Levels and retries | Retries are unlimited. A game passed at 80% or more unlocks its next level at once, with no waiting for tomorrow. |
 
 ## Rules that are easy to get wrong
@@ -50,6 +51,7 @@ The owner made these on 6 November 2026. Don't reopen them.
 6. Nothing needs an AWS account to build or test.
 7. Every pack type has its schema in `shared/schemas.js`; the publish script refuses a pack that fails it.
 8. Never use `window.confirm` or `alert` for a step that matters: in-app browsers and webviews may never show them. Ask in the page.
+9. Every game marks its next right move with `demoNext()`: Watch me first and the end-to-end tests depend on it.
 
 ## Working agreements
 

@@ -8,8 +8,11 @@ import { getState, resetForTests } from './store.js'
 beforeEach(() => {
   resetForTests()
   vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline') }))
+  // On 2026-11-19 a new player's daily mix is the first four skills, with What's Next? for logic (shared/today.js).
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-11-19T10:00:00'))
 })
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers() })
 
 /** @param {string} path */
 const open = (path) => render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
@@ -32,6 +35,17 @@ test('ages up to 10 get Percy: today\'s four games, each one a link to play it',
   expect(tiles[0].textContent).toContain('Level 5')
   expect(screen.getByRole('link', { name: 'Play ▶' }).getAttribute('href')).toBe('/play/echo')
   expect(screen.getByRole('status').textContent).toBe('Saving…') // online, not synced yet
+  const more = [...document.querySelectorAll('.more a')].map((a) => a.getAttribute('href'))
+  expect(more).toEqual(['/play/sort-switch', '/play/firefly-catch', '/play/route-planner', '/play/pattern-grid'])
+})
+
+test('a game never played opens with Watch me first; one played before offers "Show me how"', () => {
+  makePlayer('Maya', 8)
+  fireEvent.click(screen.getByRole('link', { name: /Sort Switch/ }))
+  expect(screen.getByRole('button', { name: 'Skip the demo' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+  expect(screen.getByText('👀 Watch me first', { selector: '.watch' })).toBeTruthy()
+  expect(document.querySelector('.qcard [data-demo-next]')).toBeTruthy() // the move Percy's hand will tap
 })
 
 test('ages over 10 get the galaxy: missions and planets', () => {

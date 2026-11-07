@@ -112,6 +112,66 @@ a.tile { color: #fff; }
 .badge { width: 112px; height: 112px; border-radius: 30px; display: grid; place-items: center; font-size: 56px; background: var(--c); box-shadow: 0 8px 0 var(--e); margin-bottom: 12px; }
 .how { font-size: 20px; max-width: 380px; margin: 8px 0 0; }
 
+/* Watch me first: the ghost hand and its badge (screens/Session.jsx) */
+.play { position: relative; }
+.qcard.demo { pointer-events: none; }
+.hand { position: absolute; left: 0; top: 0; font-size: 40px; z-index: 30; pointer-events: none; transition: transform .6s ease-in-out; filter: drop-shadow(0 4px 4px #0003); }
+.hand.press { animation: press .3s; }
+.watch { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); background: #8b5cf6; color: #fff; border-radius: 999px; padding: 6px 14px;
+  font-weight: 700; white-space: nowrap; z-index: 2; box-shadow: 0 4px 0 #0000001f; }
+.cheer.demo { background: #8b5cf6; }
+@keyframes press { 50% { scale: .8; translate: 0 4px; } }
+
+/* Shapes (Sort Switch, Pattern Grid) */
+.shape { display: inline-block; flex: none; }
+.shape.circle { border-radius: 50%; } .shape.square { border-radius: 18%; } .shape.triangle { clip-path: polygon(50% 4%, 98% 96%, 2% 96%); }
+
+/* Sort Switch */
+.rule { align-self: center; padding: 8px 18px; border-radius: 999px; font-weight: 700; font-size: 18px; color: #fff; }
+.rule.colour { background: linear-gradient(90deg, #ef4444, #f59e0b, #3b82f6); } .rule.shape { background: #2b2340; }
+.rule.flash { animation: flash .6s 2; } @keyframes flash { 50% { transform: scale(1.12); } }
+.sort-card { align-self: center; width: 130px; height: 130px; background: #fff; border-radius: 24px; display: grid; place-items: center; box-shadow: 0 6px 0 #0000001a; }
+.baskets { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.basket { position: relative; border-radius: 22px; background: #fde68a; box-shadow: 0 6px 0 #f59e0b; padding: 14px 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 30px; }
+.basket:disabled { cursor: default; }
+
+/* Firefly Catch */
+.meadow { position: relative; height: min(52vh, 380px); border-radius: 24px; background: radial-gradient(circle at 30% 20%, #dcfce7, #86efac 70%); overflow: hidden; box-shadow: inset 0 -30px 0 #4ade80; }
+.bug { position: absolute; translate: -50% -50%; font-size: 44px; padding: 6px; line-height: 1; color: #000; animation: pop .2s ease-out; }
+.bug:disabled { cursor: default; }
+.bug.hit { animation: catch .35s forwards; } .bug.gone { animation: fly .35s forwards; }
+.bug.oops { outline: 3px solid #e11d48; border-radius: 50%; animation: shake .35s; }
+@keyframes catch { to { scale: 1.6; opacity: 0; } } @keyframes fly { to { translate: -50% -160%; rotate: 20deg; opacity: 0; } }
+.tally { display: flex; justify-content: center; gap: 16px; font-weight: 700; }
+
+/* Route Planner */
+.route { display: grid; gap: 4px; background: #c4b5fd; padding: 6px; border-radius: 18px; width: 100%; max-width: 380px; align-self: center; }
+.sq { aspect-ratio: 1; background: #ede9fe; border-radius: 8px; display: grid; place-items: center; font-size: 22px; color: #2b2340; }
+.sq.rock { background: #a8a29e; } .sq.trail { background: #bbf7d0; } .sq.short { outline: 3px dashed #16a34a; outline-offset: -3px; } .sq.bonk { background: #fecdd3; }
+.me { font-size: 26px; animation: pop .2s; }
+.plan { min-height: 44px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: center; background: var(--surface); border-radius: 14px; padding: 6px; font-size: 20px; }
+.plan .slot { width: 28px; height: 28px; border-radius: 7px; background: var(--chip); color: var(--chip-ink); display: grid; place-items: center; }
+.plan .slot.now { background: var(--cta); color: var(--cta-ink); }
+.pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pad button { position: relative; border-radius: 14px; background: #fff; color: #2b2340; box-shadow: 0 4px 0 #0000001a; font-size: 24px; padding: 10px 0; }
+.pad .go { grid-column: span 3; background: #22c55e; color: #fff; font-weight: 700; box-shadow: 0 4px 0 #15803d; }
+.pad button:disabled { opacity: .5; }
+
+/* Pattern Grid */
+.matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #e9d5ff; padding: 8px; border-radius: 18px; width: 100%; max-width: 360px; align-self: center; }
+.mcell { position: relative; aspect-ratio: 1; background: #fff; border-radius: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: 4px; padding: 6px; }
+.mcell.gap { background: #fef3c7; outline: 3px dashed #f59e0b; outline-offset: -3px; font-size: 30px; font-weight: 700; color: #b45309; }
+.mcell.gap.filled { outline: 0; animation: pop .25s; }
+.opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .opts.six { grid-template-columns: repeat(3, 1fr); }
+.opts .mcell { box-shadow: 0 4px 0 #0000001a; }
+
+/* Home: the games not in today's set */
+.more { display: flex; flex-direction: column; gap: 8px; }
+.more b { font-size: 15px; color: var(--muted); }
+.more-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.more-list .pill { font-size: 15px; }
+body[data-theme=percy] .more-list .pill { background: #f5f3ff; }
+
 /* Day done */
 .done { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; width: 100%; max-width: 520px; margin: 0 auto; }
 .grown { position: relative; animation: pop .6s; } .grown .percy { width: 170px; }

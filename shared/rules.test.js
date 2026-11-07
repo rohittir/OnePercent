@@ -5,7 +5,8 @@ import { ADJECTIVES, ANIMALS, CODE_PATTERN, makeCode, normalizeCode } from './id
 import { mergeDays, mergeProfile, mergeResult, normalizeResult, sameResult } from './merge.js'
 import { addDays, levelsOf, progress } from './progress.js'
 import { ClaimBody, CreateBody, PairsPack, SyncBody } from './schemas.js'
-import { pickToday } from './today.js'
+import { PER_DAY, pickToday } from './today.js'
+import { SKILLS, startLevels } from './levels.js'
 
 const rand = (/** @type {number} */ n) => Math.floor(Math.random() * n)
 /** @param {string} skill @param {number} best @param {number} top @param {number} [playedAt] */
@@ -93,6 +94,25 @@ test('pickToday: one game per skill that fits the age, rotating by date', () => 
   assert.deepEqual(memory.sort(), ['echo', 'echo-big'], 'consecutive days rotate')
 })
 
+test('daily mix: with more skills than four, four a day, rotating, always with the weakest skill', () => {
+  const games = SKILLS.map((skill) => ({ id: skill, skill, ages: [7, 14] }))
+  const start = startLevels(8)
+  const dates = Array.from({ length: 7 }, (_, i) => addDays('2026-11-12', i))
+  const sets = dates.map((date) => pickToday(games, { age: 8, date, levels: start, startLevels: start }).map((g) => g.skill))
+  assert.ok(sets.every((s) => s.length === PER_DAY))
+  assert.deepEqual(sets[0], ['memory', 'focus', 'logic', 'speed'], '2026-11-12 starts the rotation at the first skill')
+  for (const skill of SKILLS) assert.equal(sets.filter((s) => s.includes(skill)).length, 4, `${skill}: four days in seven`)
+  const ahead = { ...start, memory: 9, focus: 9, logic: 9, speed: 9, switch: 9, stop: 9 } // every skill moved but planning
+  for (const date of dates) assert.ok(pickToday(games, { age: 8, date, levels: ahead, startLevels: start }).some((g) => g.skill === 'plan'))
+  assert.deepEqual(pickToday(games, { age: 8, date: '2026-11-12' }).length, PER_DAY, 'works without levels too')
+})
+
+test('levels a day began with ignore that day\'s plays', () => {
+  const days = { '2026-11-11': { echo: r('memory', 1, 5) }, '2026-11-12': { echo: r('memory', 1, 6) } }
+  assert.equal(levelsOf(start, days, '2026-11-12').memory, 6)
+  assert.equal(levelsOf(start, days).memory, 7)
+})
+
 test('schemas: bodies and packs are checked strictly', () => {
   const profile = { name: 'Maya', age: 8, muted: false, updatedAt: 1 }
   const day = { echo: r('memory', 1, 5), odd: r('focus', 0.6, -1) }
@@ -103,6 +123,8 @@ test('schemas: bodies and packs are checked strictly', () => {
   assert.equal(SyncBody.safeParse({ since: 0, days: { '2026-11-06': { echo: r('memory', 1, -2) } } }).success, false, 'top ≥ -1')
   assert.equal(SyncBody.safeParse({ since: 0, days: {}, extra: 1 }).success, false, 'unknown keys refused')
   assert.equal(ClaimBody.safeParse({ code: 'Brave-Otter-27', pin: '4821' }).success, false, 'IDs are normalized first')
+  assert.ok(CreateBody.safeParse({ profile, startLevels: start, pin: '4821', days: {} }).success, 'a profile from before the new skills')
+  assert.equal(CreateBody.safeParse({ profile, startLevels: { ...start, juggling: 3 }, pin: '4821', days: {} }).success, false)
   const pack = { id: 'starter', title: 'Starter pairs', type: 'pairs', ages: [7, 14], items: [{ a: 'b', b: 'd', level: 0 }] }
   assert.ok(PairsPack.safeParse(pack).success)
   assert.equal(PairsPack.safeParse({ ...pack, items: [{ a: 'b', b: 'b', level: 0 }] }).success, false)

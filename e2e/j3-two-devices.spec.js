@@ -2,7 +2,7 @@
 // J3: two devices of one player play the same game on the same day while offline; once online, both end up with the best
 // of each (shared/merge.js). Any device can replay any game at any time.
 import { expect, test } from '@playwright/test'
-import { autoplay, newPlayer, phone, saved } from './helpers.js'
+import { autoplay, newPlayer, phonePage, saved } from './helpers.js'
 
 /** @param {import('@playwright/test').Page} page plays today's first game, Echo, then goes home @param {number} misses */
 async function playEcho(page, misses) {
@@ -13,14 +13,14 @@ async function playEcho(page, misses) {
 }
 
 test('J3: two devices play the same game offline and converge on the best result', async ({ browser }) => {
-  const a = await (await browser.newContext(phone)).newPage()
+  const a = await phonePage(browser)
   await newPlayer(a, { name: 'Maya', age: 8, pin: '1357' })
   await saved(a)
   await a.goto('/move')
   const code = (await a.getByLabel('Your ID').textContent())?.trim() ?? ''
   await a.goto('/play')
 
-  const b = await (await browser.newContext(phone)).newPage()
+  const b = await phonePage(browser)
   await b.goto(`/join#${code}.1357`)
   await expect(b.getByText('Ready to grow, Maya?')).toBeVisible()
 

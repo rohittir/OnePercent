@@ -157,12 +157,12 @@ A game is a folder in `web/src/games/` whose `index.jsx` exports:
 | Field | Meaning |
 | --- | --- |
 | `id`, `name`, `icon`, `how`, `color` | Identity, the one-line instructions, and its three colours |
-| `skill` | One of `memory`, `focus`, `logic`, `speed`. Levels belong to skills, so a new game starts at the child's level for that skill. |
+| `skill` | One of `SKILLS` in `shared/levels.js`: `memory`, `focus`, `logic`, `speed`, `switch`, `stop`, `plan`. Levels belong to skills, so a new game starts at the child's level for that skill. |
 | `ages` | The ages it suits, for example `[7, 14]` |
 | `rounds` | Rounds per session |
 | `settings(level)` | Turns a level into the game's settings (sequence length, grid size, time limit) |
 | `content` | The content type it reads, if any, for example `pairs` |
-| `Round` | The React component of one round. It gets the settings, the content and `say`, takes one answer, calls `onDone(true or false)` once, then marks the pick and the right answer ("Between rounds"). |
+| `Round` | The React component of one round. It gets the settings, the content, `say`, `round` (from 1) and `demo`, takes one answer, calls `onDone` once (true or false, or a score from 0 to 1 for a round of many taps), then marks the pick and the right answer ("Between rounds"). It marks its next right move with `demoNext()` ("Watch me first"). |
 
 Add the folder, list it in `web/src/games/index.js`, and the app shell, sync, themes and the day flow take it as it is. A game imports only React, `games/util.js`, `sound.js` and its own folder.
 
@@ -179,11 +179,29 @@ Every round runs the same four beats, so a child always sees that a question was
 
 A game's `Round` keeps its own pick and marks its options with `mark()`; the game screen owns the timing (`HOLD_MS`, `LEAVE_MS`, `ENTER_MS` in `screens/Session.jsx`). With reduced motion the slides become instant.
 
+### The games
+
+| Game | Skill | The child |
+| --- | --- | --- |
+| Echo | memory | taps back tiles in the order they lit |
+| Odd One Out | focus | finds the one symbol that differs |
+| What's Next? | logic | picks the next number of a sequence |
+| Pattern Grid | logic | picks the tile that completes a 3×3 grid of shapes |
+| Same or Not? | speed | says whether two symbols match, fast |
+| Sort Switch | switch | sorts cards by colour or by shape as the rule changes |
+| Firefly Catch | stop | taps ladybugs and leaves bees alone, in waves of ten |
+| Route Planner | plan | plans arrows to the star, then runs the plan |
+
 ### Today's set
 
-`pickToday(games, { age, date })` in `shared/today.js` picks one game per skill from the games whose `ages` fit the child. When a skill has several games, the pick rotates by date, the same on every device. With today's four games it always picks the same four.
+`pickToday` in `shared/today.js` picks 4 games a day (`PER_DAY`), one per skill, from the games whose `ages` fit the child. With more than 4 skills, the skills rotate by date (each skill four days in seven) and the child's weakest skill, the one with the fewest levels gained when the day began, is always in. When a skill has several games, the game rotates by date too. The set is computed from the levels the day began with (`gamesToday` in `web/src/games/index.js`), so it holds still while the child plays.
 
-Home shows today's set as tiles (Percy) or planets (Galaxy), each with its level and today's stars. Each is a link to play it, as often as the child likes; "Play" opens the first game not yet passed today.
+Home shows today's set as tiles (Percy) or planets (Galaxy), each with its level and today's stars, and every other game under "More games". Each is a link to play it, as often as the child likes; "Play" opens the first game of the set not yet passed today.
+
+### Watch me first
+
+The first time a child opens a game (no result for it on any day), Start plays a demo round: the card says "👀 Watch me first", the timer holds still, and Percy's ghost hand glides to the move the round marks as next (`data-demo-next`, set by `demoNext()` in `games/util.js`) and taps it, until the round is done ("That's how! Your turn 👍"). The demo does not count. "Skip the demo" skips it; after the first play, "Show me how 👀" plays it on request. The end-to-end tests follow the same marks to play every game.
+
 
 ### Age bands and themes
 
@@ -237,7 +255,7 @@ The content bucket lives in the app stack, beside the distribution that reads it
 | tools | Pack building: hashing, bad packs, wrong folders, duplicate ids |
 | backend | Create, claim, lockout, sync merge, two devices at once, profile edits, PIN change, delete, against DynamoDB Local |
 | web | Each game's round, the puzzle rules, the store, the sync loop (with the delete queue) and the content loader with fakes, and the screens in both themes, including the in-page delete |
-| e2e | J1: with no backend, a miss, a retry, a pass that unlocks the next level at once, and the rest of the day. J2: joining by ID and PIN, by QR link, and a refused PIN. J3: two devices play the same game offline and converge. J4: the built app opens and plays offline under the CSP. |
+| e2e | The journeys pin the date to 2026-11-19, when a new player's mix is Echo, Odd One Out, What's Next? and Same or Not?. J1: with no backend, a miss, a retry, a pass that unlocks the next level at once, and the rest of the day. J2: joining by ID and PIN, by QR link, and a refused PIN. J3: two devices play the same game offline and converge. J4: the built app opens and plays offline under the CSP. J5: Watch me first, then each of the four newer games passed. |
 
 ## Risks and open items
 

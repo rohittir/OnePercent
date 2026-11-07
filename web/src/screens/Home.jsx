@@ -3,8 +3,7 @@
 import { Link } from 'react-router'
 import { starsFor } from '@onepercent/shared/levels.js'
 import { progress } from '@onepercent/shared/progress.js'
-import { pickToday } from '@onepercent/shared/today.js'
-import { GAMES } from '../games/index.js'
+import { GAMES, gamesToday } from '../games/index.js'
 import { setMuted, today } from '../store.js'
 import { requestSync } from '../sync.js'
 import { sound } from '../sound.js'
@@ -15,7 +14,9 @@ import { Stars, SyncStatus } from './parts.jsx'
 export function Home({ player }) {
   const theme = useTheme(player.age)
   const date = today()
-  const set = pickToday(GAMES, { age: player.age, date })
+  const set = gamesToday(player, date)
+  // Every other game that fits the age stays one tap away.
+  const more = GAMES.filter((g) => !set.includes(g) && player.age >= g.ages[0] && player.age <= g.ages[1])
   const prog = progress(player, date)
   const results = player.days[date] ?? {}
   const passedToday = (/** @type {import('../games/index.js').Game} */ g) => (results[g.id]?.top ?? -1) >= 0
@@ -46,6 +47,12 @@ export function Home({ player }) {
           <theme.HomeGames games={games} day={day} done={done} />
           {done && <p className="muted center">{theme.words.allDone}</p>}
           <Link className="cta" id="play" to={`/play/${next.id}`} onClick={() => sound('tap')}>{done ? theme.words.again : theme.words.start}</Link>
+          {more.length > 0 && (
+            <nav className="more" aria-label="More games">
+              <b>More games</b>
+              <div className="more-list">{more.map((g) => <Link key={g.id} className="pill" to={`/play/${g.id}`}>{g.icon} {g.name}</Link>)}</div>
+            </nav>
+          )}
           <SyncStatus player={player} />
         </section>
       </div>

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #f3efe6; font-family: system-ui, sans-serif; color: #2b2340; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .lead { color: #6f6787; margin: 0 0 16px; line-height: 1.5; max-width: 720px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 26px; margin: 0 0 20px; align-items: flex-end; }
+  .controls label, .controls legend { font: 600 13px system-ui; color: #6f6787; display: block; margin-bottom: 6px; padding: 0; }
+  .controls fieldset { border: 0; padding: 0; margin: 0; }
+  .seg { display: inline-flex; flex-wrap: wrap; background: #fff; border-radius: 12px; padding: 3px; box-shadow: 0 2px 0 #0000000f; }
+  .seg button { font: 600 14px system-ui; border: 0; background: none; padding: 8px 12px; border-radius: 9px; cursor: pointer; color: #6f6787; }
+  .seg button[aria-pressed=true] { background: #2b2340; color: #fff; }
+  input[type=range] { width: 200px; }
+  .row { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .info { flex: 1; min-width: 260px; max-width: 520px; }
+  .info h2 { margin: 0 0 2px; font-size: 22px; } .info .skill { color: #6f6787; font-weight: 600; margin: 0 0 12px; }
+  .info p { line-height: 1.5; margin: 0 0 12px; }
+  .info .dial { background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 0 #0000000f; }
+  .info .dial b { display: block; margin-bottom: 4px; }
+
+  /* The phone, in the app's Percy theme */
+  .phone { width: 340px; height: 690px; flex: none; border-radius: 46px; border: 10px solid #15121f; overflow: hidden; position: relative; box-shadow: 0 18px 40px #0002;
+           background: linear-gradient(#7dd3fc, #e0f2fe 60%); font-family: Fredoka, system-ui, sans-serif; display: flex; flex-direction: column; padding: 34px 14px 14px; gap: 10px; }
+  .phone::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 86px; height: 22px; border-radius: 12px; background: #15121f; z-index: 9; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .pill { background: #fff; border-radius: 999px; padding: 4px 10px; min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; box-shadow: 0 3px 0 #0000001a; }
+  .dots { display: flex; gap: 5px; } .dots i { width: 9px; height: 9px; border-radius: 5px; background: #2b234033; transition: background .2s, width .2s; }
+  .dots i.on { background: #8b5cf6; } .dots i.cur { width: 22px; background: #8b5cf6; } .dots i.pop { animation: dotpop .35s; }
+  .coach { display: flex; align-items: center; gap: 10px; min-height: 58px; }
+  .coach svg { width: 50px; flex: none; }
+  .bubble { background: #fff; border-radius: 16px; padding: 8px 12px; font-weight: 600; font-size: 16px; box-shadow: 0 3px 0 #0000001a; position: relative; }
+  .bubble::after { content: ""; position: absolute; left: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-right-color: #fff; border-left: 0; }
+  .stage { flex: 1; position: relative; display: flex; flex-direction: column; justify-content: center; }
+  .stage.demoing .card { pointer-events: none; }
+  .card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 6px; }
+  .card.enter { animation: enter .3s ease-out both; } .card.leave { animation: leave .25s ease-in both; }
+  .foot { text-align: center; font-weight: 600; color: #6f6787; font-size: 14px; min-height: 18px; }
+  .why { text-align: center; font-weight: 600; margin: 0; min-height: 1.3em; }
+  .cheer { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 17px;
+           white-space: nowrap; box-shadow: 0 4px 0 #0000001f; animation: cheer .3s ease-out both; z-index: 5; }
+  .cheer.ok { background: #16a34a; } .cheer.no { background: #e11d48; } .cheer.demo { background: #8b5cf6; }
+  button { font-family: inherit; cursor: pointer; }
+  .big { font: 700 19px Fredoka, sans-serif; border: 0; border-radius: 16px; padding: 13px; background: #ffc93c; color: #5a3b00; box-shadow: 0 5px 0 #e0a100; }
+  .picked-right { outline: 4px solid #16a34a; outline-offset: 3px; } .picked-wrong { outline: 4px solid #e11d48; outline-offset: 3px; animation: shake .35s; }
+  .reveal { outline: 4px dashed #16a34a; outline-offset: 3px; animation: glow 1s ease-in-out infinite; }
+  .done { text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .done b { font-size: 28px; } .done .muted { color: #6f6787; margin: 0; }
+
+  /* Watch me first: Percy's ghost hand */
+  .hand { position: absolute; left: 0; top: 0; font-size: 40px; z-index: 20; pointer-events: none; transition: transform .6s ease-in-out, opacity .3s; opacity: 0; filter: drop-shadow(0 4px 4px #0003); }
+  .hand.show { opacity: 1; } .hand.press span { display: inline-block; animation: press .25s; }
+  .watch { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #8b5cf6; color: #fff; border-radius: 999px; padding: 5px 12px; font-weight: 700; z-index: 6; white-space: nowrap; }
+
+  /* Shapes */
+  .shape { display: inline-block; flex: none; }
+  .circle { border-radius: 50%; } .square { border-radius: 18%; } .triangle { clip-path: polygon(50% 4%, 98% 96%, 2% 96%); }
+
+  /* Sort Switch */
+  .rule { align-self: center; padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: 18px; color: #fff; }
+  .rule.colour { background: linear-gradient(90deg, #ef4444, #f59e0b, #3b82f6); } .rule.shape { background: #2b2340; }
+  .rule.flash { animation: flash .6s 2; }
+  .sort-card { align-self: center; width: 130px; height: 130px; background: #fff; border-radius: 24px; display: grid; place-items: center; box-shadow: 0 6px 0 #0000001a; }
+  .baskets { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .basket { border: 0; border-radius: 22px; background: #fde68a; box-shadow: 0 6px 0 #f59e0b; padding: 14px 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 30px; position: relative; }
+
+  /* Firefly Catch */
+  .meadow { position: relative; height: 360px; border-radius: 24px; background: radial-gradient(circle at 30% 20%, #dcfce7, #86efac 70%); overflow: hidden; box-shadow: inset 0 -30px 0 #4ade80; }
+  .bug { position: absolute; transform: translate(-50%, -50%); font-size: 44px; border: 0; background: none; padding: 6px; animation: popin .2s ease-out; line-height: 1; }
+  .bug.hit { animation: catch .35s forwards; pointer-events: none; } .bug.oops { animation: shake .35s; outline: 3px solid #e11d48; border-radius: 50%; pointer-events: none; }
+  .bug.gone { animation: fly .35s forwards; pointer-events: none; }
+  .mark { position: absolute; transform: translate(-50%, -50%); font-weight: 700; font-size: 22px; pointer-events: none; animation: rise .7s forwards; }
+  .mark.ok { color: #15803d; } .mark.no { color: #be123c; }
+  .tally { display: flex; justify-content: center; gap: 14px; font-weight: 700; color: #2b2340; }
+
+  /* Route Planner */
+  .route { display: grid; gap: 4px; background: #c4b5fd; padding: 6px; border-radius: 18px; }
+  .sq { aspect-ratio: 1; background: #ede9fe; border-radius: 8px; display: grid; place-items: center; font-size: 22px; position: relative; }
+  .sq.rock { background: #a8a29e; } .sq.trail { background: #bbf7d0; } .sq.short { outline: 3px dashed #16a34a; outline-offset: -3px; } .sq.bonk { background: #fecdd3; }
+  .sq .me { width: 80%; transition: transform .25s; }
+  .plan { min-height: 44px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; justify-content: center; background: #fff; border-radius: 14px; padding: 6px; font-size: 20px; }
+  .plan .slot { width: 28px; height: 28px; border-radius: 7px; background: #ede9fe; display: grid; place-items: center; }
+  .plan .slot.now { background: #fde68a; }
+  .pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pad button { border: 0; border-radius: 12px; background: #fff; box-shadow: 0 4px 0 #0000001a; font-size: 22px; padding: 9px 0; }
+  .pad .go { grid-column: span 3; background: #22c55e; color: #fff; font: 700 18px Fredoka, sans-serif; box-shadow: 0 4px 0 #15803d; }
+
+  /* Pattern Grid */
+  .matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #e9d5ff; padding: 8px; border-radius: 18px; }
+  .mcell { aspect-ratio: 1; background: #fff; border-radius: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: 4px; padding: 6px; }
+  .mcell.gap { background: #fef3c7; outline: 3px dashed #f59e0b; outline-offset: -3px; font: 700 30px Fredoka, sans-serif; color: #b45309; }
+  .mcell.filled { outline: 0; animation: popin .25s; }
+  .opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .opts.six { grid-template-columns: repeat(3, 1fr); }
+  .opts button { border: 0; padding: 0; box-shadow: 0 4px 0 #0000001a; position: relative; }
+
+  @keyframes enter { from { transform: translateX(48px); opacity: 0; } } @keyframes leave { to { transform: translateX(-48px); opacity: 0; } }
+  @keyframes cheer { from { transform: translate(-50%, 8px) scale(.8); opacity: 0; } }
+  @keyframes shake { 20%, 60% { transform: translate(-50%, -50%) translateX(-6px); } 40%, 80% { transform: translate(-50%, -50%) translateX(6px); } }
+  .basket.picked-wrong, .opts .picked-wrong { animation: shake2 .35s; } @keyframes shake2 { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  @keyframes glow { 50% { outline-color: #86efac; } }
+  @keyframes dotpop { 50% { transform: scale(1.6); } }
+  @keyframes press { 50% { transform: scale(.75) translateY(4px); } }
+  @keyframes flash { 50% { transform: scale(1.12); } }
+  @keyframes popin { from { transform: translate(-50%, -50%) scale(.3); opacity: 0; } }
+  .mcell.filled, .sort-card { animation-name: popin2; } @keyframes popin2 { from { transform: scale(.6); opacity: 0; } }
+  @keyframes catch { to { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } }
+  @keyframes fly { to { transform: translate(-50%, -160%) rotate(20deg); opacity: 0; } }
+  @keyframes rise { to { transform: translate(-50%, -150%); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>New games: try them</h1>
+  <p class="lead">Four new games and "Watch me first", in the Percy theme, with the same answer-show-slide rhythm as the app. Each game opens with Percy's ghost hand
+    playing a demo round, then it's your turn. Move the level slider to feel the 1% dial: each level makes the game a little harder.</p>
+  <div class="controls">
+    <fieldset><legend>Game</legend><div class="seg" id="games"></div></fieldset>
+    <fieldset><legend>Watch me first</legend><div class="seg" id="demo"><button data-v="on" aria-pressed="true">On</button><button data-v="off">Off</button></div></fieldset>
+    <div><label for="level">Level <span id="lv">10</span></label><input type="range" id="level" min="0" max="60" value="10"></div>
+  </div>
+  <div class="row">
+    <div class="phone" id="phone"></div>
+    <div class="info" id="info"></div>
+  </div>
+</div>
+
+<script>
+// ---------- helpers ----------
+const rand = (n) => Math.floor(Math.random() * n)
+const pick = (a) => a[rand(a.length)]
+const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((v) => v[1])
+const shrink = (ms, level, min) => Math.max(min, ms * 0.99 ** level)
+const SHAPES = ['circle', 'square', 'triangle']
+const COLORS = { red: '#ef4444', blue: '#3b82f6', yellow: '#f59e0b' }
+const shape = (s, c, size) => `<i class="shape ${s}" style="width:${size}px;height:${size}px;background:${COLORS[c]}"></i>`
+const PERCY = '<svg viewBox="0 -20 100 120" aria-hidden="true"><path d="M50 30C50 20 52 13 56 9" stroke="#22a55a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M55 11C64 2 77 6 77 12C68 17 60 16 55 11Z" fill="#4ade80"/><path d="M51 17C42 9 31 12 31 18C40 22 47 21 51 17Z" fill="#4ade80"/><ellipse cx="50" cy="63" rx="38" ry="33" fill="#ffc93c"/><ellipse cx="50" cy="73" rx="22" ry="15" fill="#ffe08a"/><circle cx="37" cy="57" r="6.5" fill="#2b2340"/><circle cx="63" cy="57" r="6.5" fill="#2b2340"/><circle cx="39" cy="55" r="2.2" fill="#fff"/><circle cx="65" cy="55" r="2.2" fill="#fff"/><path d="M42 71Q50 79 58 71" stroke="#2b2340" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>'
+const CHEERS = ['Nice!', 'Wow!', 'You got it!', 'Super!']
+
+// ---------- the games ----------
+// Each game: render(card, ctx) draws one round and calls ctx.answer(score, why, picked, right) once (score 0..1),
+// and demo(card, hand, ctx) plays that round as Percy's ghost hand would.
+const GAMES = {}
+
+// ---------- the phone: rounds, feedback, slides, Watch me first ----------
+const opts = { game: 'sort', demo: true, level: 10 }
+const phone = document.getElementById('phone')
+phone.innerHTML = `<div class="top"><span class="pill">✕</span><div class="dots"></div><span class="pill" id="ic"></span></div>
+  <div class="coach">${PERCY}<div class="bubble" id="say"></div></div><div class="stage" id="stage"></div><div class="foot" id="foot"></div>
+  <div class="hand" id="hand"><span>👆</span></div>`
+const $ = (id) => document.getElementById(id)
+let timers = []
+const later = (fn, ms) => { timers.push(setTimeout(fn, ms)) }
+const wait = (ms) => new Promise((r) => later(r, ms))
+let run = 0 // bumps on every restart, so a demo or wave left running stops
+
+// Percy's ghost hand: glides to an element, presses it, and clicks it.
+const hand = {
+  async to(el, myRun) {
+    if (myRun !== run) throw new Error('stopped')
+    const p = phone.getBoundingClientRect(), r = el.getBoundingClientRect()
+    $('hand').classList.add('show')
+    $('hand').style.transform = `translate(${r.left - p.left + r.width / 2 - 12}px, ${r.top - p.top + r.height / 2 - 6}px)`
+    await wait(650)
+    if (myRun !== run) throw new Error('stopped')
+  },
+  async tap(el, myRun) {
+    await this.to(el, myRun)
+    $('hand').classList.remove('press'); void $('hand').offsetWidth; $('hand').classList.add('press')
+    await wait(180)
+    el.click()
+    await wait(300)
+  },
+  hide() { $('hand').classList.remove('show') },
+}
+
+let game, round, total, answered, state
+function start() {
+  timers.forEach(clearTimeout); timers = []; run++
+  hand.hide()
+  game = GAMES[opts.game]
+  round = opts.demo ? -1 : 0; total = 0; state = {}
+  $('ic').textContent = game.icon
+  phone.querySelector('.dots').innerHTML = Array.from({ length: game.rounds }, () => '<i></i>').join('')
+  renderInfo()
+  next()
+}
+
+function next() {
+  answered = false
+  const demo = round === -1
+  ;[...phone.querySelectorAll('.dots i')].forEach((d, k) => { d.className = k < round ? 'on' : k === round ? 'cur' : '' })
+  $('foot').textContent = demo ? 'Watch me first' : `${game.name} · question ${round + 1} of ${game.rounds}`
+  $('stage').innerHTML = '<div class="card enter"></div>'
+  $('stage').classList.toggle('demoing', demo)
+  const card = $('stage').firstElementChild
+  const myRun = run
+  const ctx = {
+    level: opts.level, round: Math.max(0, round), demo, state, later, run: myRun,
+    say: (t) => { $('say').textContent = t },
+    answer: (score, why, picked, right) => answer(card, score, why, picked, right, myRun),
+  }
+  game.render(card, ctx)
+  if (demo) {
+    card.insertAdjacentHTML('afterbegin', '<div class="watch">👀 Watch me first</div>')
+    // The card settles, then Percy plays it.
+    later(() => game.demo(card, hand, ctx).catch(() => {}), 500)
+  }
+}
+
+function answer(card, score, why, picked, right, myRun) {
+  if (answered || myRun !== run) return
+  answered = true
+  const ok = score >= 0.8
+  const demo = round === -1
+  if (!demo) total += score
+  card.querySelectorAll('button').forEach((b) => { b.disabled = true })
+  if (picked) picked.classList.add(ok ? 'picked-right' : 'picked-wrong')
+  if (right && !ok) right.classList.add('reveal')
+  const why_ = card.querySelector('.why'); if (why_) why_.textContent = why || ''
+  card.querySelector('.watch')?.remove()
+  card.insertAdjacentHTML('afterbegin', `<div class="cheer ${demo ? 'demo' : ok ? 'ok' : 'no'}">${demo ? "That's how! Your turn next" : ok ? '✓ ' + pick(CHEERS) : 'Not quite'}</div>`)
+  hand.hide()
+  later(() => {
+    if (round >= 0) phone.querySelectorAll('.dots i')[round].className = 'on pop'
+    card.classList.remove('enter'); card.classList.add('leave')
+    later(() => { round++; round < game.rounds ? next() : finish() }, 250)
+  }, demo ? 1400 : ok ? 900 : 1800)
+}
+
+function finish() {
+  const pct = total / game.rounds
+  const ok = pct >= 0.8
+  $('say').textContent = ok ? 'You did it! 🌱' : 'So close!'
+  $('foot').textContent = ''
+  $('stage').classList.remove('demoing')
+  $('stage').innerHTML = `<div class="card enter done">${PERCY.replace('<svg', '<svg style="width:120px"')}
+    <b>${ok ? `Level ${opts.level + 1} unlocked!` : 'So close!'}</b><p class="muted">${Math.round(pct * 100)}% · 80% unlocks the next 1%</p>
+    <button class="big" id="again">${ok ? 'Next level ▶' : 'Try again ↻'}</button></div>`
+  $('again').onclick = () => { if (ok) setLevel(opts.level + 1); start() }
+}
+
+function renderInfo() {
+  $('info').innerHTML = `<h2>${game.icon} ${game.name}</h2><p class="skill">${game.skill} · ${game.ages}</p>${game.about}
+    <div class="dial"><b>The 1% dial at level ${opts.level}</b>${game.dialText(opts.level)}</div>`
+}
+
+function setLevel(v) { opts.level = Math.max(0, Math.min(60, v)); $('level').value = opts.level; $('lv').textContent = opts.level }
+</script>
+<script src="new-games.js"></script>
+<script>
+// Controls
+$('games').innerHTML = Object.entries(GAMES).map(([k, g], i) => `<button data-v="${k}" aria-pressed="${i === 0}">${g.icon} ${g.name}</button>`).join('')
+document.querySelectorAll('.seg').forEach((seg) => seg.querySelectorAll('button').forEach((b) => b.onclick = () => {
+  seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+  if (seg.id === 'games') opts.game = b.dataset.v
+  else opts.demo = b.dataset.v === 'on'
+  start()
+}))
+$('level').oninput = (e) => { setLevel(+e.target.value); start() }
+start()
+</script>
+</body>
+</html>

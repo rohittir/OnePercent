@@ -2,26 +2,30 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import starter from '../../../content/pairs/starter.json'
+import { SKILLS } from '@onepercent/shared/levels.js'
 import { GAMES } from './index.js'
+import { makePattern } from './pattern-grid/rules.js'
+import { makeRoute, shortest } from './route-planner/rules.js'
 import { choices, makeSequence } from './whats-next/rules.js'
 
 beforeEach(() => { vi.useFakeTimers() })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 const game = (/** @type {string} */ id) => /** @type {import('./index.js').Game} */ (GAMES.find((g) => g.id === id))
-/** @param {string} id @param {number} [level] */
-function play(id, level = 0) {
+/** @param {string} id @param {number} [level] @param {{ round?: number, demo?: boolean, settings?: any }} [extra] */
+function play(id, level = 0, { round = 1, demo = false, settings } = {}) {
   const g = game(id)
   const onDone = vi.fn()
   const say = vi.fn()
-  const { container } = render(<g.Round settings={g.settings(level)} content={starter.items} say={say} onDone={onDone} />)
-  return { container, onDone, say, cells: () => [...container.querySelectorAll('.cell')] }
+  const { container } = render(<g.Round settings={settings ?? g.settings(level)} content={starter.items} say={say} onDone={onDone} round={round} demo={demo} />)
+  const next = () => /** @type {HTMLElement} */ (container.querySelector('[data-demo-next]'))
+  return { container, onDone, say, next, cells: () => [...container.querySelectorAll('.cell')] }
 }
 
 test('every game in the registry has the contract the app needs', () => {
   for (const g of GAMES) {
     expect(g.id).toMatch(/^[a-z0-9-]+$/)
-    expect(['memory', 'focus', 'logic', 'speed']).toContain(g.skill)
+    expect(SKILLS).toContain(g.skill)
     expect(g.ages[0]).toBeLessThanOrEqual(g.ages[1])
     expect(g.rounds).toBeGreaterThan(0)
     expect(typeof g.settings(0)).toBe('object')
@@ -117,4 +121,87 @@ test("what's next rules: six whole numbers, never negative; four different choic
       expect(c.every((x) => x >= 0)).toBe(true)
     }
   }
+})
+
+test('every game marks its next right move, and following the marks wins the round', () => {
+  for (const g of GAMES.filter((x) => x.id !== 'firefly-catch')) {
+    const { onDone, next } = play(g.id, 10)
+    for (let step = 0; step < 40 && !onDone.mock.calls.length; step++) {
+      act(() => { vi.advanceTimersByTime(400) })
+      if (next()) fireEvent.click(next())
+    }
+    expect(onDone, g.id).toHaveBeenCalledExactlyOnceWith(true)
+    cleanup()
+  }
+})
+
+test('sort switch: the rule switches every 3 cards at level 10, with a flash on the switch', () => {
+  const settings = game('sort-switch').settings(10)
+  const rules = [1, 2, 3, 4].map((round) => {
+    const { container } = play('sort-switch', 10, { round, settings })
+    const text = container.querySelector('.rule')?.textContent ?? ''
+    cleanup()
+    return text
+  })
+  expect(rules).toEqual(['🎨 Colour', '🎨 Colour', '🎨 Colour', '🔄 Switch! 🔷 Shape'])
+  const { container, onDone, next } = play('sort-switch', 10)
+  const wrong = /** @type {HTMLElement} */ ([...container.querySelectorAll('.basket')].find((b) => b !== next()))
+  const right = next()
+  fireEvent.click(wrong)
+  expect(onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(right.classList.contains('reveal')).toBe(true)
+  expect(container.querySelector('.why')?.textContent).toMatch(/^Colour rule: \w+ goes with \w+\.$/)
+})
+
+test('firefly catch: a wave scores the share of right calls — ladybugs tapped, bees left alone', () => {
+  const settings = { life: 1000, gap: 500, bees: 0.3, beetles: false }
+  const { container, onDone } = play('firefly-catch', 0, { settings })
+  for (let t = 0; t < 12_000 && !onDone.mock.calls.length; t += 100) {
+    act(() => { vi.advanceTimersByTime(100) })
+    const bug = /** @type {HTMLElement | null} */ (container.querySelector('[data-demo-next]'))
+    if (bug) fireEvent.click(bug)
+  }
+  expect(onDone).toHaveBeenCalledExactlyOnceWith(1)
+  expect(container.querySelector('.why')?.textContent).toBe('10 of 10 right.')
+
+  cleanup()
+  const tapAll = play('firefly-catch', 0, { settings })
+  for (let t = 0; t < 12_000 && !tapAll.onDone.mock.calls.length; t += 100) {
+    act(() => { vi.advanceTimersByTime(100) })
+    tapAll.container.querySelectorAll('.bug:not(:disabled)').forEach((b) => fireEvent.click(b)) // taps the bees too
+  }
+  const score = tapAll.onDone.mock.calls[0][0]
+  expect(score).toBeGreaterThan(0)
+  expect(score).toBeLessThan(1)
+})
+
+test('route planner: puzzles are solvable and need planning; a bump shows the shortest route', () => {
+  for (let i = 0; i < 100; i++) {
+    const p = makeRoute({ size: 6, rocks: 9 })
+    expect(p.best.moves.length).toBeGreaterThanOrEqual(6)
+    expect(shortest(p.n, p.rocks, p.start, p.goal)?.moves.length).toBe(p.best.moves.length)
+  }
+  expect(shortest(2, new Set([1, 2]), [1, 0], [0, 1])).toBeNull()
+  const { container, onDone } = play('route-planner', 0)
+  const away = container.querySelector('[aria-label="move ↓"]') // the start is on the bottom row: down walks off the edge
+  fireEvent.click(/** @type {Element} */ (away))
+  fireEvent.click(/** @type {Element} */ (container.querySelector('.go')))
+  act(() => { vi.advanceTimersByTime(1000) })
+  expect(onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(container.querySelector('.why')?.textContent).toMatch(/^Bonk! That is the edge\. A \d+-move route/)
+  expect(container.querySelectorAll('.sq.short').length).toBeGreaterThan(0)
+})
+
+test('pattern grid: one answer among different choices, and a miss names the rule', () => {
+  for (let i = 0; i < 200; i++) {
+    const p = makePattern({ rules: 3, latin: true, options: 6 })
+    expect(p.options).toHaveLength(6)
+    expect(new Set(p.options.map((o) => JSON.stringify(o))).size).toBe(6)
+    expect(p.options).toContain(p.answer)
+  }
+  const { container, onDone, next } = play('pattern-grid', 0)
+  fireEvent.click(/** @type {Element} */ ([...container.querySelectorAll('.opts button')].find((b) => b !== next())))
+  expect(onDone).toHaveBeenCalledExactlyOnceWith(false)
+  expect(container.querySelector('.why')?.textContent).toMatch(/keeps one|appears once/)
+  expect(container.querySelector('.gap.filled')).toBeTruthy()
 })

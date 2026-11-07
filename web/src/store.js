@@ -21,13 +21,16 @@ const KEY = 'onepercent:v1'
 
 const EMPTY = /** @type {State} */ ({ players: [], current: null, deletes: [] })
 
+/** A start level for every skill: players made before a skill existed start it at their age's level. @param {Record<string, number>} levels @param {number} age */
+const allSkills = (levels, age) => ({ ...startLevels(age), ...levels })
+
 /** @returns {State} */
 function read() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
     if (saved && Array.isArray(saved.players)) {
       // Results saved before 7 November 2026 had another shape; mergeDays reads them as today's.
-      return { ...EMPTY, ...saved, players: saved.players.map((/** @type {Player} */ p) => ({ ...p, days: mergeDays({}, p.days) })) }
+      return { ...EMPTY, ...saved, players: saved.players.map((/** @type {Player} */ p) => ({ ...p, startLevels: allSkills(p.startLevels, p.age), days: mergeDays({}, p.days) })) }
     }
   } catch { /* unreadable: start empty */ }
   return EMPTY
@@ -149,7 +152,7 @@ export function importPlayer({ code, token, pin, profile, startLevels: levels, d
   }
   /** @type {Player} */
   const player = {
-    localId: crypto.randomUUID(), code, token, pin, ...profile, startLevels: levels, days, dirty: {}, profileDirty: 0, rev, syncedAt: Date.now(),
+    localId: crypto.randomUUID(), code, token, pin, ...profile, startLevels: allSkills(levels, profile.age), days, dirty: {}, profileDirty: 0, rev, syncedAt: Date.now(),
   }
   commit({ ...state, players: [...state.players, player], current: player.localId })
 }

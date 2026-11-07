@@ -29,7 +29,8 @@ export const Profile = z.strictObject({
   muted: z.boolean(),
   updatedAt: z.int().positive(),
 })
-export const StartLevels = z.strictObject(Object.fromEntries(SKILLS.map((s) => [s, z.int().min(0).max(1000)])))
+// Players made before a skill existed have no start level for it; the app fills it in from the age.
+export const StartLevels = z.strictObject(Object.fromEntries(SKILLS.map((s) => [s, z.int().min(0).max(1000).optional()])))
 
 export const CreateBody = z.strictObject({ profile: Profile, startLevels: StartLevels, pin: Pin, days: Days })
 export const ClaimBody = z.strictObject({ code: Code, pin: Pin })
