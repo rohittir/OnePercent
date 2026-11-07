@@ -4,7 +4,7 @@ OnePercent is a web app of short daily brain games for children aged 7 to 14. Ea
 
 ## Status
 
-6 November 2026: M0 to M6 of `docs/TASKS.md` are built: the React app with both themes and four games, local-first sync to the Lambda and DynamoDB backend, moving devices by word ID and PIN or QR, content packs, the offline app, CloudFront and the CI and deploy workflows. Only OP-M6-01 is open: the owner's AWS account, region and domain, then the first deploy (`docs/RUNBOOK.md`). The prototype `index.html` and `design/concepts.html` stay as references.
+6 November 2026: M0 to M6 of `docs/TASKS.md` are built: the React app with both themes and four games, local-first sync to the Lambda and DynamoDB backend, moving devices by word ID and PIN or QR, content packs, the offline app, CloudFront and the CI and deploy workflows. Prod was deployed to us-east-1 from the owner's machine on 6 November 2026, with the owner's custom domain and its existing certificate (the values live in the deploy command's environment, never in a file). The domain's CNAME at its DNS host is in place. Open in OP-M6-01: the GitHub OIDC role for the Deploy workflow (`docs/RUNBOOK.md`). The prototype `index.html` and `design/concepts.html` stay as references.
 
 Local run: `npm ci` at the root and in `backend/`, then `npm run stack:up` (DynamoDB Local on port 8100), `npm run dev` (the API on port 4100) and `npm run dev:web` (http://localhost:5180). Checks: `npm run lint`, `npm test`, `npm run test:int` and `npm run e2e` (both need the stack), `npm run synth`.
 

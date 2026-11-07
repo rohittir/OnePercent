@@ -26,7 +26,9 @@ How to run, deploy, publish content, roll back and remove a stage. Real account 
 STAGE=dev AWS_REGION=<region> npm run deploy
 ```
 
-With a domain, add `DOMAIN_NAME=<name> CERTIFICATE_ARN=<arn>`, then point the domain's DNS (a CNAME or alias) at the distribution in the `SiteUrl` output.
+With a domain, add `DOMAIN_NAME=<name> CERTIFICATE_ARN=<arn>`. The certificate must be in `us-east-1` and cover the name (a wildcard such as `*.example.com` does). Then point the domain's DNS at the distribution: a CNAME from the name to the distribution's `*.cloudfront.net` address (`aws cloudfront get-distribution --id <DistributionId output> --query Distribution.DomainName`). When the domain's DNS is not in Route 53, add the CNAME at its DNS host.
+
+`npm run deploy` stops to ask before IAM changes. From a script, run the steps it runs with `npx cdk deploy --all --require-approval never` (as the Deploy workflow does).
 
 The outputs give `SiteUrl`, `ContentBucketName` and `DistributionId`.
 

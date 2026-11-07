@@ -56,5 +56,5 @@ The build plan for `docs/ARCHITECTURE.md`. Work in order; each task ends with a 
 
 | Task | Does | Check |
 | --- | --- | --- |
-| OP-M6-01 | Owner: AWS account, region, domain and certificate, the CDK bootstrap and the GitHub OIDC role (`docs/RUNBOOK.md`) | Owner confirms |
-| OP-M6-02 ✓ | The web bucket and the CloudFront distribution (`/api/*`, `/content/*`, the CSP); GitHub Actions CI and the manual deploy workflow; the runbook | `npm run synth`. A deploy to `dev`, then J2 against it, waits for OP-M6-01. |
+| OP-M6-01 | Owner: AWS account, region, domain and certificate, the CDK bootstrap ✓ (6 November 2026: prod in us-east-1 with the owner's domain). The domain's CNAME at its DNS host ✓. Still open: the GitHub OIDC role and environments for the Deploy workflow (`docs/RUNBOOK.md`). | Owner confirms |
+| OP-M6-02 ✓ | The web bucket and the CloudFront distribution (`/api/*`, `/content/*`, the CSP); GitHub Actions CI and the manual deploy workflow; the runbook | `npm run synth`. Prod deployed from the owner's machine on 6 November 2026; the starter pack published; a create, claim, sync and delete round trip passed through CloudFront and was cleaned up. |
