@@ -1,0 +1,51 @@
+# OnePercent
+
+OnePercent is a web app of short daily brain games for children aged 7 to 14. Each skill has a level, and every good day makes that skill's games about 1% harder. Ages 7–10 see the Percy and pals theme; ages 11–14 see Brain galaxy.
+
+## Status
+
+6 November 2026: the single-file prototype `index.html` works and is the reference for the look, the four games and the level rules. `design/concepts.html` holds the design directions. The React and AWS serverless build is planned in `docs/ARCHITECTURE.md` and `docs/TASKS.md`. M0 (foundation) is done; M1 (the React app on one device) is next.
+
+Local run: `npm ci` at the root and in `backend/`, then `npm run stack:up` (DynamoDB Local on port 8100) and `npm run dev` (the API on port 4100). Checks: `npm run lint`, `npm test`, `npm run test:int` (needs the stack), `npm run synth`.
+
+## Where things are
+
+| Path | Holds |
+| --- | --- |
+| `docs/ARCHITECTURE.md` | The design: stack, players and devices, sync, data model, API, games and content |
+| `docs/TASKS.md` | The ordered build plan, `OP-M0` to `OP-M6`. The first unticked task is next. |
+| `shared/` | `@onepercent/shared`: the level rules and the age bands, used by the web app and the backend |
+| `backend/` | The API Lambda (`src/`), its key schema (`src/data/schema.js`), the CDK app (`infra/`), DynamoDB Local (`compose.yaml`). Its own `package.json`, not a workspace. |
+| `index.html` | The prototype. Open `index.html?test` for its self-check. |
+| `design/concepts.html` | The three design directions; A and B were chosen |
+
+## Decisions that are fixed
+
+The owner made these on 6 November 2026. Don't reopen them.
+
+| Decision | Detail |
+| --- | --- |
+| Model | Follow EHub-Serverless: plain JavaScript with JSDoc, React and Vite, a `shared/` package, `lambda-api`, one DynamoDB table through `dynamodb-onetable`, AWS CDK |
+| Backend | API Gateway HTTP API, Lambda, DynamoDB single table |
+| No accounts | Progress lives in localStorage and syncs to the backend regularly |
+| Identity | Each player gets a word ID such as `brave-otter-27` and a 4-digit PIN. A new device joins by QR code or by typing the ID and PIN. |
+| Devices | All of a player's devices stay active and in sync. On the same day, the best result of each game counts. |
+| Players per device | Several; the app opens on "Who's playing?" |
+| Themes | Percy and pals for ages up to 10, Brain galaxy above 10 |
+| Content | New games ship in code releases. Their content is uploaded by the developer apart from a release. |
+| Layout | Phone first, iPad second, desktop last |
+
+## Rules that are easy to get wrong
+
+1. Levels, stars and streaks are derived from the days played, never stored as truth.
+2. Merge rules must give the same result in any order: the best score per game per day, and the later edit for profile fields.
+3. An unknown ID and a wrong PIN get the same answer. No response carries a PIN hash, a salt or a token hash.
+4. Only `backend/src/data/schema.js` spells a key.
+5. A game never imports another game, the store or the sync code. It gets its settings and content through its props.
+6. Nothing needs an AWS account to build or test.
+
+## Working agreements
+
+- Build the smallest thing that works, and leave one runnable test for every rule.
+- Commit only when the owner asks.
+- Documents use short plain sentences and tables.

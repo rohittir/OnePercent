@@ -1,0 +1,27 @@
+{
+  "name": "onepercent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "npm": ">=11"
+  },
+  "workspaces": [
+    "shared"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "test": "npm test --workspaces --if-present && npm test --prefix backend",
+    "dev": "npm run dev --prefix backend",
+    "stack:up": "npm run stack:up --prefix backend",
+    "stack:down": "npm run stack:down --prefix backend",
+    "test:int": "npm run test:int --prefix backend",
+    "synth": "npm run synth --prefix backend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0"
+  }
+}

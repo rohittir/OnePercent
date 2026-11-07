@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OnePercent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body { font-family: var(--font); color: var(--ink); background: var(--bg); min-height: 100dvh; }
+  /* Ages 7–10: Percy and pals. Ages 11–14: Brain galaxy. */
+  body[data-theme=percy] {
+    --font: Fredoka, system-ui, sans-serif; --bg: linear-gradient(#7dd3fc, #e0f2fe 60%) fixed; --ink: #2b2340; --muted: #6f6787;
+    --surface: #fff; --edge: #0000001a; --cta: #ffc93c; --cta-ink: #5a3b00; --cta-edge: #e0a100;
+    --tile: #c4b5fd; --tile-edge: #a78bfa; --lit: #ffd84d; --chip: #ede9fe; --chip-ink: #4c1d95; --timer: #ffc93c;
+  }
+  body[data-theme=galaxy] {
+    --font: "Baloo 2", system-ui, sans-serif; --ink: #e8ecff; --muted: #a5b4fc;
+    --surface: #ffffff14; --edge: #ffffff0d; --cta: #5eead4; --cta-ink: #0b1026; --cta-edge: #14b8a6;
+    --tile: #ffffff14; --tile-edge: #ffffff0d; --lit: #5eead4; --chip: #ffffff1a; --chip-ink: #e8ecff; --timer: linear-gradient(90deg, #5eead4, #a78bfa);
+    --bg: radial-gradient(1.2px 1.2px at 22px 34px, #fff, transparent), radial-gradient(1.6px 1.6px at 128px 84px, #fff, transparent),
+          radial-gradient(1px 1px at 212px 168px, #fff, transparent), radial-gradient(1.2px 1.2px at 64px 236px, #fffc, transparent),
+          radial-gradient(1.6px 1.6px at 246px 318px, #fff, transparent), radial-gradient(1px 1px at 150px 410px, #fffc, transparent),
+          linear-gradient(#0b1026, #241f5c) fixed;
+    background-size: 280px 460px, 280px 460px, 280px 460px, 280px 460px, 280px 460px, 280px 460px, auto;
+  }
+  main { min-height: 100dvh; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column;
+         padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  :focus-visible { outline: 3px solid var(--lit); outline-offset: 2px; }
+  h1 { font-size: 32px; line-height: 1.1; margin: 0; font-weight: 700; }
+  .muted { color: var(--muted); margin: 0; }
+  .center { text-align: center; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .pill { background: var(--surface); border-radius: 999px; padding: 6px 12px; min-height: 40px; min-width: 40px; font-weight: 600; font-size: 16px;
+          display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 3px 0 var(--edge); }
+  .cta { width: 100%; border-radius: 20px; padding: 16px; font-size: 22px; font-weight: 700; background: var(--cta); color: var(--cta-ink); box-shadow: 0 6px 0 var(--cta-edge); margin-top: auto; }
+  body[data-theme=galaxy] .cta { box-shadow: 0 0 0 4px #5eead433, 0 6px 0 var(--cta-edge); }
+  .cta:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--cta-edge); }
+  .chunk { border-radius: 18px; padding: 14px; font-size: 24px; font-weight: 700; background: var(--surface); box-shadow: 0 5px 0 var(--edge); }
+  .chunk:active, .cell:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--edge); }
+  .ghost { color: var(--muted); text-decoration: underline; font-size: 14px; padding: 8px; align-self: center; }
+
+  /* Characters and motion */
+  .percy { display: block; height: auto; }
+  .buddy { animation: bob 3s ease-in-out infinite; }
+  .hop { animation: hop .5s; } .shake { animation: shake .4s; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+  @keyframes hop { 30% { transform: translateY(-14px) scale(1.05); } 60% { transform: translateY(0) scale(.97); } }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px) rotate(-3deg); } 40%, 80% { transform: translateX(6px) rotate(3deg); } }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } }
+  @keyframes launch { from { transform: translateY(90px) scale(.6); opacity: 0; } }
+  @keyframes fall { to { transform: translateY(110vh) rotate(var(--r)); } }
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
+  .confetti i { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 2px; animation: fall linear forwards; }
+  .bubble { background: #fff; color: #2b2340; border-radius: 18px; padding: 10px 16px; font-weight: 600; font-size: 18px; position: relative; box-shadow: 0 3px 0 #0000001a; text-align: center; }
+  .bubble::after { content: ""; position: absolute; bottom: -8px; left: 50%; margin-left: -8px; border: 8px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  .big-rocket { font-size: 88px; animation: launch 1s ease-out; } .big-rocket span, .rocket span { display: inline-block; }
+  .big-rocket span { transform: rotate(-20deg); }
+
+  /* Home */
+  .home { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .cols { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 8px; }
+  .hero .percy { width: 150px; }
+  .ground { align-self: stretch; height: 44px; margin: -30px -16px 0; background: #86efac; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .sheet { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+  body[data-theme=percy] .sheet { background: #fff; border-radius: 28px 28px 0 0; padding: 18px 16px max(16px, env(safe-area-inset-bottom));
+    margin: -30px calc(-1 * max(16px, env(safe-area-inset-right))) calc(-1 * max(16px, env(safe-area-inset-bottom))) calc(-1 * max(16px, env(safe-area-inset-left))); position: relative; }
+  body[data-theme=galaxy] .hero { align-items: flex-start; }
+  .hero-rocket { display: none; }
+  .sheet-h { display: flex; justify-content: space-between; align-items: baseline; } .sheet-h b { font-size: 20px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tile { border-radius: 20px; padding: 12px 14px; color: #fff; display: flex; flex-direction: column; gap: 2px; background: var(--c); box-shadow: 0 5px 0 var(--e); }
+  .tile .ic { font-size: 26px; } .tile b { font-size: 16px; } .tile small { font-size: 13px; }
+  .map { position: relative; width: min(100%, 340px); aspect-ratio: 268 / 330; margin: 8px auto 44px; }
+  .map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .planet { position: absolute; width: 23%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--l), var(--c)); }
+  .planet::after { content: ""; position: absolute; left: -22%; right: -22%; top: 39%; height: 22%; border: 3px solid #ffffff4d; border-radius: 50%; transform: rotate(-14deg); }
+  .planet > span { position: absolute; top: 108%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 14px; font-weight: 600; color: #c7d2fe; text-align: center; line-height: 1.25; }
+  .rocket { position: absolute; font-size: 32px; } .rocket span { transform: rotate(45deg); }
+  .stars { color: #f59e0b; letter-spacing: 2px; } .stars s { text-decoration: none; opacity: .3; }
+  .tile .stars { color: #fff; }
+
+  /* Playing */
+  .play { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .dots { display: flex; gap: 6px; } .dots i { width: 10px; height: 10px; border-radius: 5px; background: currentColor; opacity: .2; }
+  .dots i.on { background: var(--c); opacity: 1; } .dots i.cur { width: 24px; }
+  .coach { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 76px; }
+  .coach .percy { width: 64px; }
+  .coach .bubble::after { left: -8px; top: 50%; bottom: auto; margin: -8px 0 0; border: 8px solid transparent; border-right-color: #fff; border-left: 0; }
+  body[data-theme=galaxy] .coach .bubble { background: none; box-shadow: none; color: var(--ink); font-size: 26px; font-weight: 800; padding: 0; }
+  body[data-theme=galaxy] .coach .bubble::after { display: none; }
+  .board { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; width: 100%; max-width: 540px; margin: 0 auto; border-radius: 24px; padding: 8px; transition: background .2s; }
+  .board.right { background: #22c55e33; } .board.wrong { background: #f43f5e33; animation: shake .35s; }
+  .board.right, .board.wrong { pointer-events: none; }
+  .foot { text-align: center; font-weight: 600; color: var(--muted); }
+  .grid { display: grid; gap: 10px; }
+  .cell { aspect-ratio: 1; border-radius: 22%; background: var(--tile); box-shadow: 0 5px 0 var(--tile-edge); display: grid; place-items: center; color: var(--ink); transition: transform .1s, background .1s; }
+  body[data-theme=galaxy] .cell { border: 1px solid #ffffff1f; }
+  .cell:disabled { cursor: default; }
+  .cell.lit { background: var(--lit); box-shadow: 0 5px 0 var(--cta-edge), 0 0 28px var(--lit); transform: scale(1.06); }
+  .seq { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip { background: var(--chip); color: var(--chip-ink); border-radius: 14px; padding: 8px 12px; font-weight: 700; font-size: 28px; min-width: 54px; text-align: center; }
+  .chip.q { background: var(--cta); color: var(--cta-ink); }
+  .choices, .yn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pair { display: flex; justify-content: center; gap: 16px; }
+  .pair span { width: 120px; aspect-ratio: 1; border-radius: 24px; background: var(--surface); display: grid; place-items: center; font-size: 64px; box-shadow: 0 5px 0 var(--edge); }
+  body[data-theme=percy] .pair span, body[data-theme=percy] .choices .chunk { background: #fff; }
+  .yn .yes { background: #22c55e; color: #fff; box-shadow: 0 5px 0 #15803d; }
+  .yn .nope { background: #f43f5e; color: #fff; box-shadow: 0 5px 0 #be123c; }
+  .timer { height: 10px; border-radius: 5px; background: var(--timer); width: 100%; }
+  .intro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; animation: pop .35s; }
+  .badge { width: 112px; height: 112px; border-radius: 30px; display: grid; place-items: center; font-size: 56px; background: var(--c); box-shadow: 0 8px 0 var(--e); margin-bottom: 12px; }
+  body[data-theme=galaxy] .badge { border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--l), var(--c)); box-shadow: 0 0 48px var(--c); }
+  .how { font-size: 20px; max-width: 380px; margin: 8px 0 0; }
+
+  /* Day done */
+  .done { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; width: 100%; max-width: 520px; margin: 0 auto; }
+  .grown { position: relative; animation: pop .6s; } .grown .percy { width: 170px; }
+  .up-chip { position: absolute; right: -24px; top: 24px; background: #22c55e; color: #fff; }
+  .rows { align-self: stretch; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .res { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 10px 14px; font-weight: 600; box-shadow: 0 3px 0 var(--edge); }
+  .res .stars { margin-left: auto; font-size: 18px; }
+  .up { font-size: 12px; background: #22c55e; color: #fff; border-radius: 999px; padding: 2px 8px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-self: stretch; text-align: left; }
+  .stat { background: var(--surface); border-radius: 16px; padding: 10px 14px; } .stat b { display: block; font-size: 24px; } .stat small { color: var(--muted); font-size: 14px; }
+
+  /* Setup */
+  .setup { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; width: 100%; max-width: 480px; margin: 0 auto; }
+  .setup .percy { width: 130px; }
+  .card { background: var(--surface); border-radius: 24px; padding: 18px; align-self: stretch; text-align: left; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 4px 0 var(--edge); margin-top: 8px; }
+  .field { font-weight: 600; display: flex; flex-direction: column; gap: 6px; }
+  .field input { font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 14px; border: 2px solid #0000001f; background: #fff; color: #2b2340; }
+  fieldset { border: 0; padding: 0; margin: 0; } legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .ages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .age { position: relative; }
+  .age input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; }
+  .age span { display: block; text-align: center; padding: 12px 0; border-radius: 14px; font-size: 20px; font-weight: 700; background: var(--chip); color: var(--chip-ink); box-shadow: 0 4px 0 var(--edge); cursor: pointer; }
+  .age input:checked + span { background: var(--cta); color: var(--cta-ink); box-shadow: 0 4px 0 var(--cta-edge); }
+  .age input:focus-visible + span { outline: 3px solid var(--lit); outline-offset: 2px; }
+
+  /* iPad and up: home splits into two columns, boards and type get bigger. */
+  @media (min-width: 700px) {
+    main { padding: max(24px, env(safe-area-inset-top)) 32px 32px; }
+    h1 { font-size: 40px; }
+    .cols { flex-direction: row; align-items: center; gap: 40px; }
+    .cols > * { flex: 1; }
+    .hero .percy { width: 260px; }
+    .ground { margin: -36px 0 0; border-radius: 50%; height: 60px; }
+    body[data-theme=percy] .sheet { margin: 0; border-radius: 28px; padding: 24px; box-shadow: 0 8px 0 #0000000d; }
+    .hero-rocket { display: block; font-size: 120px; margin: 24px auto 0; }
+    .map { width: min(100%, 440px); } .planet > span { font-size: 16px; }
+    .coach .percy { width: 84px; }
+    .coach .bubble { font-size: 22px; }
+    .chip { font-size: 36px; } .chunk { font-size: 30px; padding: 18px; }
+    .pair span { width: 180px; font-size: 96px; }
+    .how { font-size: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *:not(.timer) { animation: none !important; transition: none !important; }
+    .confetti { display: none; }
+  }
+</style>
+</head>
+<body data-theme="percy">
+<main></main>
+<script>
+// OnePercent: a few minutes of brain games a day for kids 7–14.
+// Each skill has a level; a good day moves it up one step, and every step makes that game about 1% harder.
+
+const SKILLS = {
+  memory: { name: 'Echo', skill: 'Working memory', icon: '🧠', rounds: 5, round: memoryRound, c: '#8b5cf6', e: '#6d28d9', l: '#ddd6fe',
+    how: 'Tiles light up one by one. Tap them back in the same order.' },
+  focus: { name: 'Odd One Out', skill: 'Attention', icon: '🔍', rounds: 5, round: focusRound, c: '#0ea5e9', e: '#0369a1', l: '#bae6fd',
+    how: 'Everything looks the same… except one. Find it before the bar runs out!' },
+  logic: { name: "What's Next?", skill: 'Pattern & logic', icon: '🧩', rounds: 5, round: logicRound, c: '#f59e0b', e: '#b45309', l: '#fde68a',
+    how: 'Find the rule in the numbers and pick what comes next.' },
+  speed: { name: 'Same or Not?', skill: 'Processing speed', icon: '⚡', rounds: 10, round: speedRound, c: '#ec4899', e: '#be185d', l: '#fbcfe8',
+    how: 'Are the two the same? Answer fast!' },
+};
+const COPY = {
+  percy: { start: 'Play ▶', bye: 'See you tomorrow 👋', good: ['Nice!', 'Wow!', 'You got it!', 'Super!', 'Brainy!'], bad: ['Oops! Next one!', 'Almost!', 'Keep going!'] },
+  galaxy: { start: 'Launch 🚀', bye: 'Back to base', good: ['Direct hit!', 'Stellar!', 'Nailed it!', 'Light speed!'], bad: ['Missed! Next one', 'Off course!', 'So close!'] },
+};
+// Look-alike pairs, easiest first; harder pairs unlock as the level rises.
+const PAIRS = [['🍎','🚗'], ['🐶','🌵'], ['⭐','🌙'], ['🐱','🐯'], ['🍋','🍌'], ['O','Q'], ['b','d'], ['p','q'], ['6','9'], ['E','F'], ['M','N'], ['🙂','🙃'], ['C','G']];
+// Planet spots on the galaxy map, as % of the map box (matches the dashed path below).
+const PLANETS = [[10.8, 2.7], [57.8, 27.6], [14.6, 51.8], [60.1, 77.3]];
+const PATH = `<svg viewBox="0 0 268 330" aria-hidden="true"><path d="M60 40C150 40 190 80 186 122S66 160 70 202S196 246 192 286" stroke="#ffffff40" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round" fill="none"/></svg>`;
+const KEY = 'onepercent';
+
+const app = document.querySelector('main');
+const $ = q => document.querySelector(q);
+const h = html => { app.innerHTML = html; scrollTo(0, 0); };
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+const rand = n => Math.floor(Math.random() * n);
+const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const shrink = (ms, n, min) => Math.max(min, ms * 0.99 ** n);  // 1% less time per level
+const pairFor = n => PAIRS[rand(Math.min(PAIRS.length, 3 + Math.floor(n / 5)))];
+const today = (d = new Date()) => d.toLocaleDateString('en-CA');  // local YYYY-MM-DD
+const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return today(d); };
+const growth = days => (1.01 ** days).toFixed(2);
+const themeFor = age => age <= 10 ? 'percy' : 'galaxy';
+const setTheme = age => { document.body.dataset.theme = themeFor(age); };
+const theme = () => document.body.dataset.theme;
+const skillVars = g => `--c:${g.c};--e:${g.e};--l:${g.l}`;
+const starsFor = score => score >= 0.9 ? 3 : score >= 0.6 ? 2 : 1;  // finishing always earns a star
+const starsHtml = n => `<span class="stars" aria-label="${n} of 3 stars">${'★'.repeat(n)}<s>${'★'.repeat(3 - n)}</s></span>`;
+// The round's own screen, so a round left running after "quit" can't write onto a new screen.
+const say = (area, text) => { const el = area.parentNode?.querySelector('#say'); if (el) el.textContent = text; };
+// shortcut: progress lives in this browser only; move to an account/backend when parents need it across devices.
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
+const save = s => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { alert("Couldn't save progress on this device."); } };
+
+// Good day (80%+) → one step harder tomorrow; rough day (under 50%) → one step easier; otherwise hold.
+function nextLevel(level, score) {
+  if (score >= 0.8) return level + 1;
+  if (score < 0.5) return Math.max(0, level - 1);
+  return level;
+}
+
+// --- Sound (synthesized, no files) and haptics ---
+let audio, muted = false;
+function play(notes) {
+  if (muted) return;
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    let t = audio.currentTime;
+    for (const [freq, dur] of notes) {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur);
+      t += dur * 0.85;
+    }
+  } catch {}  // no sound is fine
+}
+const SOUNDS = { tap: [[660, .06]], good: [[523, .09], [784, .14]], bad: [[220, .12], [175, .2]], win: [[523, .12], [659, .12], [784, .12], [1047, .4]] };
+const sound = name => play(SOUNDS[name]);
+const tone = i => play([[330 + i * 55, .2]]);  // each Echo tile has its own note
+const buzz = pattern => navigator.vibrate?.(pattern);  // Android only; iOS browsers ignore it
+
+// Percy's sprout grows 1% for every day played.
+// shortcut: growth caps at 1.8× (~day 60); add new stages (more leaves, a flower) for long streaks.
+function percy(days = 0) {
+  const g = Math.min(1.8, 1.01 ** days);
+  return `<svg class="percy" viewBox="0 -20 100 120" aria-hidden="true">
+    <g transform="translate(50 30) scale(${g}) translate(-50 -30)">
+      <path d="M50 30C50 20 52 13 56 9" stroke="#22a55a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M55 11C64 2 77 6 77 12C68 17 60 16 55 11Z" fill="#4ade80"/><path d="M51 17C42 9 31 12 31 18C40 22 47 21 51 17Z" fill="#4ade80"/>
+    </g>
+    <ellipse cx="50" cy="63" rx="38" ry="33" fill="#ffc93c"/><ellipse cx="50" cy="73" rx="22" ry="15" fill="#ffe08a"/>
+    <circle cx="37" cy="57" r="6.5" fill="#2b2340"/><circle cx="63" cy="57" r="6.5" fill="#2b2340"/>
+    <circle cx="39" cy="55" r="2.2" fill="#fff"/><circle cx="65" cy="55" r="2.2" fill="#fff"/>
+    <path d="M42 71Q50 79 58 71" stroke="#2b2340" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <circle cx="26" cy="69" r="5" fill="#ff8fa3" opacity=".55"/><circle cx="74" cy="69" r="5" fill="#ff8fa3" opacity=".55"/>
+  </svg>`;
+}
+
+function confetti() {
+  const colors = ['#8b5cf6', '#0ea5e9', '#f59e0b', '#ec4899', '#22c55e', '#ffc93c'];
+  return `<div class="confetti" aria-hidden="true">${Array.from({ length: 40 }, (_, i) =>
+    `<i style="left:${rand(100)}%;background:${colors[i % 6]};animation-delay:${rand(900)}ms;animation-duration:${1800 + rand(1500)}ms;--r:${rand(720)}deg"></i>`).join('')}</div>`;
+}
+
+function timer(area, ms, onTimeout) {
+  const bar = document.createElement('div');
+  bar.className = 'timer';
+  area.prepend(bar);
+  bar.getBoundingClientRect();  // lay out at full width first so the shrink animates
+  bar.style.transition = `width ${ms}ms linear`;
+  bar.style.width = '0%';
+  const t = setTimeout(onTimeout, ms);
+  return () => clearTimeout(t);
+}
+
+// --- Games: each round renders into `area` and resolves true (right) or false (wrong / too slow). ---
+
+async function memoryRound(n, area) {
+  const len = Math.min(9, 3 + Math.floor(n / 10)), flash = shrink(800, n, 350), seq = [];
+  while (seq.length < len) { const t = rand(9); if (t !== seq.at(-1)) seq.push(t); }
+  say(area, 'Watch the glow… 👀');
+  area.innerHTML = `<div class="grid" style="grid-template-columns:repeat(3,1fr)">${
+    Array.from({ length: 9 }, (_, i) => `<button class="cell" disabled aria-label="tile ${i + 1}"></button>`).join('')}</div>`;
+  const tiles = [...area.querySelectorAll('.cell')];
+  await wait(600);
+  for (const i of seq) { tiles[i].classList.add('lit'); tone(i); await wait(flash); tiles[i].classList.remove('lit'); await wait(flash / 3); }
+  say(area, 'Your turn! Tap them in order');
+  tiles.forEach(t => { t.disabled = false; });
+  return new Promise(done => {
+    let pos = 0;
+    tiles.forEach((t, i) => t.onclick = () => {
+      if (i !== seq[pos]) return done(false);
+      tone(i);
+      t.classList.add('lit'); setTimeout(() => t.classList.remove('lit'), 180);
+      if (++pos === seq.length) done(true);
+    });
+  });
+}
+
+function focusRound(n, area) {
+  const size = Math.min(7, 3 + Math.floor(n / 12)), [a, b] = shuffle(pairFor(n)), odd = rand(size * size);
+  say(area, 'Find the odd one out!');
+  area.innerHTML = `<div class="grid" style="grid-template-columns:repeat(${size},1fr);gap:${size > 4 ? 6 : 10}px;font-size:calc(min(100vw - 48px, 540px) / ${size} * .45)">${
+    Array.from({ length: size * size }, (_, i) => `<button class="cell">${i === odd ? b : a}</button>`).join('')}</div>`;
+  return new Promise(done => {
+    const stop = timer(area, shrink(10000, n, 3000), () => done(false));
+    area.querySelectorAll('.cell').forEach((t, i) => t.onclick = () => { stop(); done(i === odd); });
+  });
+}
+
+// Six numbers following one rule; the child sees five and picks the sixth. New rule types unlock every 12 levels.
+function makeSequence(n) {
+  const type = rand(Math.min(4, 1 + Math.floor(n / 12)));
+  const a = 1 + rand(9), d = 2 + rand(4 + Math.floor(n / 10));
+  const step = [
+    x => x + d,                     // add
+    x => x - d,                     // subtract
+    x => x * (2 + (d % 2)),         // ×2 or ×3
+    (x, i) => x + d + i,            // growing step: +d, +d+1, +d+2…
+  ][type];
+  const seq = [type === 1 ? a + 6 * d : type === 2 ? 1 + rand(3) : a];
+  for (let i = 0; i < 5; i++) seq.push(step(seq[i], i));
+  return seq;
+}
+
+function choices(ans) {
+  const set = new Set([ans]);
+  while (set.size < 4) {
+    const c = ans + (rand(2) ? 1 : -1) * (1 + rand(Math.max(3, Math.round(ans * 0.2))));
+    if (c >= 0) set.add(c);
+  }
+  return shuffle([...set]);
+}
+
+function logicRound(n, area) {
+  const seq = makeSequence(n), ans = seq.pop();
+  say(area, 'What comes next?');
+  area.innerHTML = `<div class="seq">${seq.map(x => `<span class="chip">${x}</span>`).join('')}<span class="chip q">?</span></div>
+    <div class="choices">${choices(ans).map(c => `<button class="chunk">${c}</button>`).join('')}</div>`;
+  return new Promise(done => area.querySelectorAll('.chunk').forEach(b => b.onclick = () => done(+b.textContent === ans)));
+}
+
+function speedRound(n, area) {
+  const [a, b] = shuffle(pairFor(n)), same = rand(2) === 0;
+  say(area, 'Same or not? Be quick!');
+  area.innerHTML = `<div class="pair"><span>${a}</span><span>${same ? a : b}</span></div>
+    <div class="yn"><button class="chunk yes" data-same="1">✓ Same</button><button class="chunk nope" data-same="">✗ Different</button></div>`;
+  return new Promise(done => {
+    const stop = timer(area, shrink(3000, n, 800), () => done(false));
+    area.querySelectorAll('.yn button').forEach(btn => btn.onclick = () => { stop(); done(!!btn.dataset.same === same); });
+  });
+}
+
+// --- Screens ---
+
+let session = 0;  // bumped whenever we leave a game, so its pending rounds stop
+const quitBtn = `<button class="pill" id="quit" aria-label="Stop playing">✕</button>`;
+const bindQuit = () => { $('#quit').onclick = () => { if (confirm("Stop for today? This session won't count.")) home(); }; };
+
+function react(ok, combo) {
+  const lines = COPY[theme()][ok ? 'good' : 'bad'];
+  $('#area').classList.add(ok ? 'right' : 'wrong');
+  $('#say').textContent = ok && combo >= 3 ? `🔥 ${combo} in a row!` : lines[rand(lines.length)];
+  $('.coach .percy')?.classList.add(ok ? 'hop' : 'shake');
+  sound(ok ? 'good' : 'bad');
+  buzz(ok ? 15 : [60, 40, 60]);
+}
+
+async function playDay() {
+  const me = ++session, alive = () => me === session, s = load(), results = {};
+  const games = Object.entries(SKILLS);
+  let combo = 0;
+  for (const [i, [key, g]] of games.entries()) {
+    await new Promise(go => {
+      h(`<div class="play" style="${skillVars(g)}"><div class="topbar">${quitBtn}<span class="pill">Game ${i + 1} of ${games.length}</span></div>
+        <div class="intro"><div class="badge">${g.icon}</div><h1>${g.name}</h1><p class="muted">${g.skill}</p><p class="how">${g.how}</p></div>
+        <button class="cta" id="go">Start</button></div>`);
+      bindQuit();
+      $('#go').onclick = () => { sound('tap'); go(); };
+      $('#go').focus();
+    });
+    let correct = 0;
+    for (let r = 1; r <= g.rounds; r++) {
+      h(`<div class="play" style="${skillVars(g)}">
+        <div class="topbar">${quitBtn}<div class="dots" aria-hidden="true">${Array.from({ length: g.rounds }, (_, j) => `<i class="${j < r - 1 ? 'on' : j === r - 1 ? 'on cur' : ''}"></i>`).join('')}</div><span class="pill">${g.icon}</span></div>
+        <div class="coach">${theme() === 'percy' ? `<div class="buddy">${percy(s.days)}</div>` : ''}<div class="bubble" id="say" aria-live="polite"></div></div>
+        <section class="board" id="area"></section>
+        <div class="foot">${g.name} · round ${r} of ${g.rounds}${combo >= 2 ? ` · 🔥 ${combo} in a row` : ''}</div></div>`);
+      bindQuit();
+      const ok = await g.round(s.levels[key], $('#area'));
+      if (!alive()) return;
+      correct += ok;
+      combo = ok ? combo + 1 : 0;
+      react(ok, combo);
+      await wait(ok ? 700 : 1100);
+      if (!alive()) return;
+    }
+    results[key] = correct / g.rounds;
+  }
+  s.before = { ...s.levels };
+  for (const k in results) s.levels[k] = nextLevel(s.levels[k], results[k]);
+  s.streak = s.lastDay === yesterday() ? s.streak + 1 : 1;
+  s.days += 1;
+  s.lastDay = today();
+  s.lastResults = results;
+  s.stars = (s.stars || 0) + Object.values(results).reduce((t, x) => t + starsFor(x), 0);
+  save(s);
+  doneScreen(s);
+}
+
+function doneScreen(s) {
+  const rows = Object.entries(SKILLS).map(([k, g]) => `<div class="res"><span>${g.icon}</span>${g.name}${
+    s.levels[k] > s.before[k] ? '<span class="up">+1%</span>' : ''}${starsHtml(starsFor(s.lastResults[k]))}</div>`).join('');
+  h(`${confetti()}<div class="done">${theme() === 'percy'
+    ? `<h1>Day ${s.days} done!</h1><div class="buddy"><div class="grown">${percy(s.days)}<span class="pill up-chip">+1%</span></div></div>
+       <p class="muted">Percy grew 1% today 🌱</p>`
+    : `<div class="big-rocket"><span>🚀</span></div><h1>Mission complete</h1><p class="muted">You flew 1% farther than yesterday</p>
+       <div class="stats"><div class="stat"><b>🔥 ${s.streak}</b><small>day streak</small></div><div class="stat"><b>${growth(s.days)}×</b><small>since day one</small></div></div>`}
+    <div class="rows">${rows}</div><button class="cta" id="bye">${COPY[theme()].bye}</button></div>`);
+  sound('win');
+  buzz([30, 50, 30]);
+  $('#bye').onclick = () => home();
+}
+
+function home() {
+  session++;  // leaving any game in progress
+  const s = load();
+  if (!s) return setup();
+  setTheme(s.age);
+  muted = !!s.muted;
+  const done = s.lastDay === today(), day = done ? s.days : s.days + 1;
+  const streak = done || s.lastDay === yesterday() ? s.streak : 0;
+  const status = k => done ? starsHtml(starsFor(s.lastResults[k])) : `Level ${s.levels[k]}`;
+  const skills = Object.entries(SKILLS);
+  const [hero, sheet] = theme() === 'percy'
+    ? [`<div class="bubble">${done ? 'Great job today! See you tomorrow 🌙' : `Ready to grow, ${esc(s.name)}?`}</div>
+       <div class="buddy">${percy(s.days)}</div><div class="ground"></div>`,
+       `<div class="sheet-h"><b>Today's 1%</b><span class="muted">Day ${day}</span></div>
+       <div class="tiles">${skills.map(([k, g]) => `<div class="tile" style="${skillVars(g)}"><span class="ic">${g.icon}</span><b>${g.name}</b><small>${status(k)}</small></div>`).join('')}</div>`]
+    : [`<h1>Mission ${day}</h1><p class="muted">${done ? 'All planets visited. Next mission tomorrow.' : `${skills.length} planets to visit today, ${esc(s.name)}`}</p>
+       <div class="hero-rocket buddy">🚀</div>`,
+       `<div class="map">${PATH}${skills.map(([k, g], i) => `<div class="planet" style="${skillVars(g)};left:${PLANETS[i][0]}%;top:${PLANETS[i][1]}%"><span>${g.name}<br>${status(k)}</span></div>`).join('')}
+       <div class="rocket buddy" style="left:${done ? 84 : 35}%;top:${done ? 70 : 1}%"><span>🚀</span></div></div>`];
+  h(`<div class="home">
+    <div class="topbar"><span class="pill" aria-label="${streak} day streak">🔥 ${streak}</span>
+      <span class="topbar"><button class="pill" id="mute" aria-label="${muted ? 'Turn sound on' : 'Turn sound off'}">${muted ? '🔇' : '🔊'}</button>
+      <span class="pill">${theme() === 'percy' ? `⭐ ${s.stars || 0}` : `🚀 ${growth(s.days)}×`}</span></span></div>
+    <div class="cols"><section class="hero">${hero}</section>
+      <section class="sheet">${sheet}
+        ${done ? `<p class="muted center">Come back tomorrow for your next 1% 🌱</p>` : `<button class="cta" id="go">${COPY[theme()].start}</button>`}
+        <button class="ghost" id="reset">Reset profile</button></section></div></div>`);
+  $('#go')?.addEventListener('click', () => { sound('tap'); playDay(); });
+  $('#mute').onclick = () => { s.muted = !s.muted; save(s); home(); };
+  $('#reset').onclick = () => {
+    if (confirm(`Delete ${s.name}'s progress? This can't be undone.`)) { localStorage.removeItem(KEY); home(); }
+  };
+}
+
+function setup() {
+  document.body.dataset.theme = 'percy';
+  h(`<div class="setup"><div class="buddy" id="face">${percy()}</div><h1>OnePercent</h1>
+    <p class="muted">Play for 3 minutes a day. Every day you do well, the games get 1% harder, so you grow a little every day.</p>
+    <form class="card" id="f">
+      <label class="field">What's your name?<input name="name" required maxlength="20" pattern=".*\\S.*" autocomplete="off" autocapitalize="words"></label>
+      <fieldset><legend>How old are you?</legend><div class="ages">${[7, 8, 9, 10, 11, 12, 13, 14].map(a =>
+        `<label class="age"><input type="radio" name="age" value="${a}" required><span>${a}</span></label>`).join('')}</div></fieldset>
+      <button class="cta">Let's go!</button>
+    </form></div>`);
+  const f = $('#f');
+  f.onchange = e => {  // preview the child's world as soon as they pick an age
+    if (e.target.name !== 'age') return;
+    setTheme(+e.target.value);
+    $('#face').innerHTML = theme() === 'percy' ? percy() : '<div class="big-rocket"><span>🚀</span></div>';
+  };
+  f.onsubmit = e => {
+    e.preventDefault();
+    const d = new FormData(f), age = +d.get('age'), start = (age - 7) * 5;  // older kids start a few steps further along
+    save({ name: d.get('name').trim(), age, levels: { memory: start, focus: start, logic: start, speed: start },
+           streak: 0, days: 0, stars: 0, muted: false, lastDay: null });
+    sound('good');
+    home();
+  };
+}
+
+// Open index.html?test to run the self-check.
+function selfTest() {
+  let fails = 0;
+  const check = (ok, ...why) => ok || (fails++, console.error('FAIL', ...why));
+  check(nextLevel(5, 0.8) === 6 && nextLevel(5, 0.6) === 5 && nextLevel(5, 0.4) === 4 && nextLevel(0, 0) === 0, 'nextLevel');
+  check(starsFor(1) === 3 && starsFor(0.9) === 3 && starsFor(0.8) === 2 && starsFor(0.6) === 2 && starsFor(0.4) === 1 && starsFor(0) === 1, 'stars');
+  check(themeFor(7) === 'percy' && themeFor(10) === 'percy' && themeFor(11) === 'galaxy' && themeFor(14) === 'galaxy', 'theme');
+  check(/^\d{4}-\d{2}-\d{2}$/.test(today()) && yesterday() < today(), 'dates', today(), yesterday());
+  for (let n = 0; n <= 200; n += 5) for (let i = 0; i < 40; i++) {
+    const seq = makeSequence(n), c = choices(seq.at(-1)), p = pairFor(n);
+    check(seq.length === 6 && seq.every(x => Number.isInteger(x) && x >= 0), 'sequence', n, seq);
+    check(c.length === 4 && c.includes(seq.at(-1)) && new Set(c).size === 4 && c.every(x => x >= 0), 'choices', c);
+    check(p && p[0] !== p[1], 'pair', n);
+  }
+  h(`<h1>${fails ? `❌ ${fails} checks failed (see console)` : '✅ All checks passed'}</h1>`);
+}
+
+new URLSearchParams(location.search).has('test') ? selfTest() : home();
+</script>
+</body>
+</html>

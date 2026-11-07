@@ -1,0 +1,13 @@
+name: onepercent
+# DynamoDB Local, in memory, bound to 127.0.0.1. src/local.js makes the table on start.
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.1
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["127.0.0.1:8100:8000"]
+    # Any HTTP answer means Java is listening, so `docker compose up --wait` returns only when it is.
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://127.0.0.1:8000"]
+      interval: 1s
+      timeout: 2s
+      retries: 30

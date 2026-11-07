@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OnePercent design directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f3efe6; font-family: system-ui, sans-serif; color: #2b2340; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 0; }
+  .wrap h1 { margin: 0 0 4px; font-size: 28px; }
+  section h2 { margin: 0 0 4px; font-size: 22px; }
+  .lead { margin: 0 0 16px; color: #6f6787; max-width: 680px; line-height: 1.5; }
+  .row { display: flex; gap: 28px; overflow-x: auto; padding: 8px 4px 32px; }
+  figure { margin: 0; }
+  figcaption { font: 600 13px system-ui; color: #6f6787; text-align: center; margin-top: 10px; }
+  .phone { width: 300px; height: 620px; border-radius: 44px; border: 10px solid #15121f; overflow: hidden; position: relative; flex: none;
+           box-shadow: 0 18px 40px #0002; display: flex; flex-direction: column; }
+  .phone::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 86px; height: 22px; border-radius: 12px; background: #15121f; z-index: 9; }
+  .scr { padding: 44px 16px 18px; display: flex; flex-direction: column; height: 100%; position: relative; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; }
+  .grow { flex: 1; }
+  .dots { display: flex; gap: 6px; } .dots i { width: 10px; height: 10px; border-radius: 5px; background: #0002; } .dots i.on { background: var(--dot); } .dots i.cur { background: var(--dot); width: 24px; }
+
+  /* A: Percy & pals */
+  .a { font-family: Fredoka, sans-serif; color: #2b2340; --dot: #8b5cf6; }
+  .a .pill { background: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 600; font-size: 15px; box-shadow: 0 3px 0 #0001; }
+  .a .bubble { background: #fff; border-radius: 18px; padding: 9px 14px; font-weight: 500; font-size: 16px; position: relative; box-shadow: 0 3px 0 #0001; }
+  .a .bubble.down { align-self: center; margin: 12px 0 10px; }
+  .a .bubble.down::after { content: ""; position: absolute; bottom: -8px; left: 50%; margin-left: -8px; border: 8px solid transparent; border-top-color: #fff; border-bottom: 0; }
+  .a .bubble.left::after { content: ""; position: absolute; left: -8px; top: 50%; margin-top: -8px; border: 8px solid transparent; border-right-color: #fff; border-left: 0; }
+  .a .hill { height: 46px; background: #86efac; border-radius: 50% 50% 0 0 / 100% 100% 0 0; margin: -18px -16px 0; }
+  .a .sheet { background: #fff; border-radius: 28px 28px 0 0; margin-top: -24px; padding: 16px 16px 20px; position: relative; }
+  .a .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 16px; }
+  .a .tile { border-radius: 18px; padding: 10px 12px; color: #fff; font-size: 22px; display: flex; flex-direction: column; }
+  .a .tile b { font-size: 15px; font-weight: 600; } .a .tile small { font-size: 12px; opacity: .9; }
+  .chunky { width: 100%; border: 0; border-radius: 18px; padding: 15px; font: 600 20px Fredoka, sans-serif; color: #5a3b00; background: #ffc93c; box-shadow: 0 6px 0 #e0a100; }
+  .a .egrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 6px 0; }
+  .a .egrid i { aspect-ratio: 1; border-radius: 20px; background: #c4b5fd; box-shadow: 0 6px 0 #a78bfa; }
+  .a .egrid i.lit { background: #ffd84d; box-shadow: 0 6px 0 #e0a100, 0 0 28px #ffd84d; transform: scale(1.06); }
+  .a .res { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 9px 12px; margin: 6px 0; box-shadow: 0 3px 0 #0001; font-weight: 500; }
+  .a .res .st { margin-left: auto; color: #f59e0b; letter-spacing: 2px; } .a .res .st s { color: #e5e1d8; text-decoration: none; }
+  .cf { position: absolute; width: 9px; height: 14px; border-radius: 2px; }
+
+  /* B: Brain galaxy */
+  .b { font-family: "Baloo 2", sans-serif; color: #e8ecff; --dot: #5eead4;
+       background:
+         radial-gradient(1.2px 1.2px at 22px 34px, #fff, transparent), radial-gradient(1.6px 1.6px at 128px 84px, #fff, transparent),
+         radial-gradient(1px 1px at 212px 168px, #fff, transparent), radial-gradient(1.2px 1.2px at 64px 236px, #fffc, transparent),
+         radial-gradient(1.6px 1.6px at 246px 318px, #fff, transparent), radial-gradient(1px 1px at 150px 410px, #fffc, transparent),
+         linear-gradient(#0b1026, #241f5c);
+       background-size: 280px 460px, 280px 460px, 280px 460px, 280px 460px, 280px 460px, 280px 460px, auto; }
+  .b .dots i { background: #ffffff26; }
+  .b .gpill { background: #ffffff14; border: 1px solid #ffffff26; border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: 14px; }
+  .b h3 { font-size: 30px; margin: 14px 0 0; line-height: 1.05; font-weight: 800; }
+  .b .dim { color: #a5b4fc; margin: 2px 0 0; font-size: 15px; }
+  .b .map { position: relative; height: 330px; margin-top: 10px; }
+  .planet { position: absolute; width: 62px; height: 62px; border-radius: 50%; }
+  .planet::after { content: ""; position: absolute; left: -14px; right: -14px; top: 24px; height: 14px; border: 3px solid #ffffff4d; border-radius: 50%; transform: rotate(-14deg); }
+  .planet span { position: absolute; top: 68px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 13px; font-weight: 600; color: #c7d2fe; }
+  .launch { width: 100%; border: 0; border-radius: 18px; padding: 13px; font: 800 20px "Baloo 2", sans-serif; color: #0b1026; background: #5eead4; box-shadow: 0 0 0 4px #5eead433, 0 6px 0 #14b8a6; }
+  .b .ggrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+  .b .ggrid i { aspect-ratio: 1; border-radius: 14px; background: #ffffff10; border: 1px solid #ffffff1f; display: grid; place-items: center; font-style: normal; font-size: 26px; }
+  .fuel { height: 10px; border-radius: 5px; background: #ffffff1a; overflow: hidden; margin-top: 14px; } .fuel i { display: block; height: 100%; width: 62%; background: linear-gradient(90deg, #5eead4, #a78bfa); }
+  .b .stat { background: #ffffff10; border: 1px solid #ffffff1f; border-radius: 16px; padding: 8px 12px; }
+  .b .stat b { display: block; font-size: 22px; line-height: 1.1; } .b .stat small { color: #a5b4fc; font-size: 13px; }
+
+  /* C: Grow garden */
+  .c { font-family: Nunito, sans-serif; background: #fdf6e3; color: #3f3a2b; --dot: #22a06b; }
+  .c h3 { font-size: 24px; margin: 0; font-weight: 900; }
+  .c .soft { color: #8a8068; font-size: 14px; font-weight: 700; margin: 2px 0 0; }
+  .water { width: 100%; border: 0; border-radius: 999px; padding: 15px; font: 900 18px Nunito, sans-serif; color: #fff; background: #22a06b; box-shadow: 0 5px 0 #15803d; }
+  .fruit { position: absolute; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; border: 3px solid #fff; box-shadow: 0 4px 10px #0002; }
+  .leafchip { background: #dcfce7; color: #166534; border-radius: 16px 3px 16px 3px; padding: 8px 10px; font-weight: 900; font-size: 22px; }
+  .seed { width: 58px; height: 58px; border-radius: 50%; background: #fde68a; box-shadow: 0 4px 0 #f59e0b; display: grid; place-items: center; font-weight: 900; font-size: 20px; }
+  .seed.right { background: #86efac; box-shadow: 0 4px 0 #22a06b; }
+  .c .card { background: #fff; border-radius: 22px; padding: 16px; box-shadow: 0 4px 0 #efe6cc; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="percy" viewBox="0 0 100 100">
+    <path d="M50 30 C50 20 52 13 56 9" stroke="#22a55a" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M55 11 C64 2 77 6 77 12 C68 17 60 16 55 11Z" fill="#4ade80"/>
+    <path d="M51 17 C42 9 31 12 31 18 C40 22 47 21 51 17Z" fill="#4ade80"/>
+    <ellipse cx="50" cy="63" rx="38" ry="33" fill="#ffc93c"/>
+    <ellipse cx="50" cy="73" rx="22" ry="15" fill="#ffe08a"/>
+    <circle cx="37" cy="57" r="6.5" fill="#2b2340"/><circle cx="63" cy="57" r="6.5" fill="#2b2340"/>
+    <circle cx="39" cy="55" r="2.2" fill="#fff"/><circle cx="65" cy="55" r="2.2" fill="#fff"/>
+    <path d="M42 71 Q50 79 58 71" stroke="#2b2340" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <circle cx="26" cy="69" r="5" fill="#ff8fa3" opacity=".55"/><circle cx="74" cy="69" r="5" fill="#ff8fa3" opacity=".55"/>
+  </symbol>
+  <symbol id="tree" viewBox="0 0 200 220">
+    <ellipse cx="100" cy="212" rx="74" ry="8" fill="#e9dfc2"/>
+    <path d="M100 212 V118 M100 160 Q84 140 62 132 M100 148 Q118 128 140 122" stroke="#8b5e34" stroke-width="13" fill="none" stroke-linecap="round"/>
+    <circle cx="58" cy="104" r="40" fill="#22c55e"/><circle cx="144" cy="100" r="40" fill="#22c55e"/>
+    <circle cx="100" cy="82" r="60" fill="#4ade80"/><circle cx="100" cy="50" r="38" fill="#86efac"/>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <h1>OnePercent: three directions</h1>
+  <p class="lead">Each direction shows the same three moments: the home screen, playing a game, and finishing the day. The four games and the 1%-a-day rule stay the same; only the world around them changes.</p>
+</div>
+
+<!-- A -->
+<section class="wrap">
+  <h2>A · Percy and pals</h2>
+  <p class="lead">A friendly sprout buddy, Percy, grows a little every day you play. Bright, chunky, tactile buttons. The warmest fit for 7–10, and still fine for older kids.</p>
+  <div class="row">
+    <figure><div class="phone a">
+      <div class="scr" style="background:linear-gradient(#7dd3fc,#e0f2fe 75%);padding-bottom:0">
+        <div class="topbar"><span class="pill">🔥 5</span><span class="pill">⭐ 86</span></div>
+        <div class="bubble down">Ready to grow, Maya?</div>
+        <svg viewBox="0 0 100 100" width="130" height="130" style="align-self:center;position:relative;z-index:1"><use href="#percy"/></svg>
+        <div class="hill"></div>
+      </div>
+      <div class="sheet">
+        <div class="topbar"><b style="font-size:19px;font-weight:600">Today's 1%</b><span style="color:#8a84a0">Day 12</span></div>
+        <div class="tiles">
+          <div class="tile" style="background:#8b5cf6;box-shadow:0 5px 0 #6d28d9">🧠<b>Echo</b><small>Level 12</small></div>
+          <div class="tile" style="background:#0ea5e9;box-shadow:0 5px 0 #0369a1">🔍<b>Odd one out</b><small>Level 9</small></div>
+          <div class="tile" style="background:#f59e0b;box-shadow:0 5px 0 #b45309">🧩<b>What's next</b><small>Level 14</small></div>
+          <div class="tile" style="background:#ec4899;box-shadow:0 5px 0 #be185d">⚡<b>Same or not</b><small>Level 11</small></div>
+        </div>
+        <button class="chunky">Play ▶</button>
+      </div>
+    </div><figcaption>Home</figcaption></figure>
+
+    <figure><div class="phone a"><div class="scr" style="background:#ede9fe">
+      <div class="topbar"><span class="pill">✕</span><div class="dots"><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i></div><span class="pill">🧠</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin:22px 0 18px">
+        <svg viewBox="0 0 100 100" width="64" height="64"><use href="#percy"/></svg>
+        <div class="bubble left">Watch the glow… 👀</div>
+      </div>
+      <div class="egrid"><i></i><i class="lit"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p style="text-align:center;color:#6d5bb0;font-weight:500;margin-top:18px">Then tap them in the same order</p>
+      <div class="grow"></div>
+      <div style="text-align:center;font-weight:600;color:#6d28d9">Echo · round 3 of 5</div>
+    </div></div><figcaption>Playing (Echo)</figcaption></figure>
+
+    <figure><div class="phone a"><div class="scr" style="background:linear-gradient(#fef3c7,#fff 60%);text-align:center">
+      <i class="cf" style="background:#8b5cf6;top:70px;left:30px;transform:rotate(20deg)"></i><i class="cf" style="background:#0ea5e9;top:110px;left:240px;transform:rotate(-30deg)"></i>
+      <i class="cf" style="background:#ec4899;top:60px;left:190px;transform:rotate(60deg)"></i><i class="cf" style="background:#f59e0b;top:150px;left:20px;transform:rotate(-50deg)"></i>
+      <i class="cf" style="background:#22c55e;top:170px;left:250px;transform:rotate(15deg)"></i><i class="cf" style="background:#8b5cf6;top:40px;left:110px;transform:rotate(80deg)"></i>
+      <div style="font-size:30px;font-weight:700;margin-top:18px">Day 12 done!</div>
+      <div style="position:relative;align-self:center;margin:6px 0">
+        <svg viewBox="0 0 100 100" width="140" height="140"><use href="#percy"/></svg>
+        <span class="pill" style="position:absolute;right:-24px;top:16px;background:#22c55e;color:#fff">+1%</span>
+      </div>
+      <div style="color:#6f6787;font-weight:500;margin-bottom:8px">Percy grew a little taller today</div>
+      <div class="res">🧠 Echo<span class="st">★★★</span></div>
+      <div class="res">🔍 Odd one out<span class="st">★★<s>★</s></span></div>
+      <div class="res">🧩 What's next<span class="st">★★★</span></div>
+      <div class="res">⚡ Same or not<span class="st">★★★</span></div>
+      <div class="grow"></div>
+      <button class="chunky">See you tomorrow 👋</button>
+    </div></div><figcaption>Day done</figcaption></figure>
+  </div>
+</section>
+
+<!-- B -->
+<section class="wrap">
+  <h2>B · Brain galaxy</h2>
+  <p class="lead">Each skill is a planet and each day is a mission; your rocket flies 1% farther every day. Darker and cooler, so it lands better with 11–14 without losing younger kids.</p>
+  <div class="row">
+    <figure><div class="phone b"><div class="scr">
+      <div class="topbar"><span class="gpill">🔥 5 days</span><span class="gpill">🚀 1.13× farther</span></div>
+      <h3>Mission 12</h3><p class="dim">4 planets to visit today</p>
+      <div class="map">
+        <svg width="268" height="330" style="position:absolute;inset:0"><path d="M60 40 C150 40 190 80 186 122 S66 160 70 202 S196 246 192 286" stroke="#ffffff40" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round" fill="none"/></svg>
+        <div class="planet" style="left:29px;top:9px;background:radial-gradient(circle at 30% 30%,#ddd6fe,#7c3aed)"><span>Echo</span></div>
+        <div style="position:absolute;left:94px;top:4px;font-size:30px;transform:rotate(45deg)">🚀</div>
+        <div class="planet" style="left:155px;top:91px;background:radial-gradient(circle at 30% 30%,#bae6fd,#0284c7)"><span>Odd one out</span></div>
+        <div class="planet" style="left:39px;top:171px;background:radial-gradient(circle at 30% 30%,#fde68a,#d97706)"><span>What's next</span></div>
+        <div class="planet" style="left:161px;top:255px;background:radial-gradient(circle at 30% 30%,#fbcfe8,#db2777)"><span>Same or not</span></div>
+      </div>
+      <div class="grow"></div>
+      <button class="launch">Launch 🚀</button>
+    </div></div><figcaption>Home</figcaption></figure>
+
+    <figure><div class="phone b"><div class="scr">
+      <div class="topbar"><span class="gpill">✕</span><div class="dots"><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i></div><span class="gpill">🔍</span></div>
+      <h3 style="font-size:26px;margin-top:22px">Find the odd moon</h3>
+      <div class="fuel"><i></i></div>
+      <div class="ggrid">
+        <i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i>
+        <i>🌕</i><i>🌕</i><i style="border-color:#5eead4">🌖</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i><i>🌕</i>
+      </div>
+      <div class="grow"></div>
+      <div style="text-align:center" class="dim">Odd one out · round 3 of 5</div>
+    </div></div><figcaption>Playing (Odd one out)</figcaption></figure>
+
+    <figure><div class="phone b"><div class="scr" style="text-align:center">
+      <div style="font-size:80px;margin-top:24px;transform:rotate(-20deg)">🚀</div>
+      <h3>Mission complete</h3>
+      <p class="dim">You flew 1% farther than yesterday</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0;text-align:left">
+        <div class="stat"><b>🔥 6</b><small>day streak</small></div>
+        <div class="stat"><b>1.13×</b><small>since day one</small></div>
+      </div>
+      <div style="display:flex;justify-content:space-around;font-size:13px;color:#c7d2fe;font-weight:600">
+        <div><div style="width:34px;height:34px;border-radius:50%;margin:0 auto 4px;background:radial-gradient(circle at 30% 30%,#ddd6fe,#7c3aed)"></div>★★★</div>
+        <div><div style="width:34px;height:34px;border-radius:50%;margin:0 auto 4px;background:radial-gradient(circle at 30% 30%,#bae6fd,#0284c7)"></div>★★☆</div>
+        <div><div style="width:34px;height:34px;border-radius:50%;margin:0 auto 4px;background:radial-gradient(circle at 30% 30%,#fde68a,#d97706)"></div>★★★</div>
+        <div><div style="width:34px;height:34px;border-radius:50%;margin:0 auto 4px;background:radial-gradient(circle at 30% 30%,#fbcfe8,#db2777)"></div>★★★</div>
+      </div>
+      <div class="grow"></div>
+      <button class="launch">Back to base</button>
+    </div></div><figcaption>Day done</figcaption></figure>
+  </div>
+</section>
+
+<!-- C -->
+<section class="wrap">
+  <h2>C · Grow garden</h2>
+  <p class="lead">Your tree grows one ring a day, and each skill is a fruit you ripen by playing. Calm, warm and soft; it suits mindful parents and younger kids best, and is the least "game-y".</p>
+  <div class="row">
+    <figure><div class="phone c"><div class="scr">
+      <h3>Maya's tree</h3><p class="soft">Day 12 · 1.13× taller than day one</p>
+      <div style="position:relative;width:240px;height:264px;align-self:center;margin-top:18px">
+        <svg viewBox="0 0 200 220" width="240" height="264"><use href="#tree"/></svg>
+        <div class="fruit" style="left:30px;top:84px;background:#c4b5fd">🧠</div>
+        <div class="fruit" style="left:160px;top:76px;background:#bae6fd">🔍</div>
+        <div class="fruit" style="left:76px;top:28px;background:#fde68a">🧩</div>
+        <div class="fruit" style="left:118px;top:120px;background:#fbcfe8">⚡</div>
+      </div>
+      <p class="soft" style="text-align:center;margin-top:8px">Four fruits are waiting to ripen</p>
+      <div class="grow"></div>
+      <button class="water">Water my tree 💧</button>
+    </div></div><figcaption>Home</figcaption></figure>
+
+    <figure><div class="phone c"><div class="scr" style="background:#ecfdf5">
+      <div class="topbar"><span style="font-weight:900">✕</span><div class="dots"><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i></div><span>🧩</span></div>
+      <h3 style="margin-top:26px;text-align:center">What comes next?</h3>
+      <div class="card" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:20px 0">
+        <span class="leafchip">3</span><span class="leafchip">6</span><span class="leafchip">9</span><span class="leafchip">12</span><span class="leafchip" style="background:#fef3c7;color:#b45309">?</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px">
+        <span class="seed">14</span><span class="seed right">15</span><span class="seed">16</span><span class="seed">18</span>
+      </div>
+      <div class="grow"></div>
+      <p class="soft" style="text-align:center">🐞 What's next · round 3 of 5</p>
+    </div></div><figcaption>Playing (What's next)</figcaption></figure>
+
+    <figure><div class="phone c"><div class="scr" style="text-align:center">
+      <h3 style="margin-top:14px">Your tree grew 1% 🌱</h3>
+      <p class="soft">12 rings and counting</p>
+      <div style="position:relative;width:200px;height:220px;align-self:center;margin:14px 0">
+        <svg viewBox="0 0 200 220" width="200" height="220"><use href="#tree"/></svg>
+        <div class="fruit" style="left:22px;top:70px;background:#a78bfa">🧠</div>
+        <div class="fruit" style="left:136px;top:62px;background:#38bdf8">🔍</div>
+        <div class="fruit" style="left:64px;top:20px;background:#fbbf24">🧩</div>
+        <div class="fruit" style="left:98px;top:100px;background:#f472b6">⚡</div>
+        <div style="position:absolute;right:-6px;top:-6px;font-size:28px">✨</div>
+      </div>
+      <div class="card" style="font-weight:800;text-align:left;line-height:2">🧠 Echo <span style="float:right;color:#f59e0b">★★★</span><br>🔍 Odd one out <span style="float:right;color:#f59e0b">★★☆</span><br>🧩 What's next <span style="float:right;color:#f59e0b">★★★</span><br>⚡ Same or not <span style="float:right;color:#f59e0b">★★★</span></div>
+      <div class="grow"></div>
+      <button class="water">See you tomorrow</button>
+    </div></div><figcaption>Day done</figcaption></figure>
+  </div>
+</section>
+</body>
+</html>
