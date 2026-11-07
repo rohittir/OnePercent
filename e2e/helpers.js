@@ -1,0 +1,90 @@
+// @ts-check
+import { devices, expect } from '@playwright/test'
+
+export const phone = devices['Pixel 7']
+
+/** @param {import('@playwright/test').Page} page @param {{ name: string, age: number, pin?: string }} who */
+export async function newPlayer(page, { name, age, pin = '4821' }) {
+  await page.goto('/new')
+  await page.getByLabel("What's your name?").fill(name)
+  await page.locator('.age', { hasText: new RegExp(`^${age}$`) }).click()
+  await page.getByLabel(/Pick a 4-digit PIN/).fill(pin)
+  await page.getByRole('button', { name: "Let's go!" }).click()
+  await expect(page.locator('#play')).toBeVisible()
+}
+
+/** @param {import('@playwright/test').Page} page waits until the player's progress is on the server */
+export const saved = (page) => expect(page.getByText('Saved ✓')).toBeVisible({ timeout: 20_000 })
+
+/**
+ * Plays from the first game's intro, reading each answer off the screen like a careful child.
+ * Runs in the page. Stops at the day-done screen or before starting game number games + 1.
+ * @param {{ games: number, missFirst?: boolean }} options missFirst answers the very first round wrong
+ * @returns {Promise<number>} how many games it started
+ */
+export async function autoplay({ games, missFirst = false }) {
+  const wait = (/** @type {number} */ ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  /** @type {number[]} Echo's flashes, recorded as they light disabled tiles */
+  const seen = []
+  const observer = new MutationObserver((mutations) => {
+    for (const { target } of mutations) {
+      const el = /** @type {HTMLButtonElement} */ (target)
+      if (el.disabled && el.classList.contains('lit')) seen.push([...(el.parentNode?.children ?? [])].indexOf(el))
+    }
+  })
+  observer.observe(/** @type {Node} */ (document.querySelector('main')), { subtree: true, attributes: true, attributeFilter: ['class'] })
+  let started = 0
+  let answered = 0
+  /** @type {Element | null} */
+  let handled = null
+  try {
+    for (let step = 0; step < 5000; step++) {
+      await wait(100)
+      if (document.querySelector('.done')) return started
+      const go = document.getElementById('go')
+      if (go && document.querySelector('.intro')) {
+        if (started === games) return started
+        started++
+        go.click()
+        continue
+      }
+      const area = document.getElementById('area')
+      const round = area?.firstElementChild ?? null
+      if (!area || !round || round === handled || area.classList.contains('right') || area.classList.contains('wrong')) continue
+      const say = document.getElementById('say')?.textContent ?? ''
+      const wrong = missFirst && answered === 0
+      /** @param {string} selector */
+      const all = (selector) => /** @type {HTMLElement[]} */ ([...area.querySelectorAll(selector)])
+      if (say.startsWith('Your turn')) {
+        const tiles = all('.cell')
+        const order = seen.splice(0)
+        if (wrong) tiles[(order[0] + 1) % tiles.length].click()
+        else order.forEach((i) => tiles[i].click())
+      } else if (say.startsWith('Find the odd')) {
+        const cells = all('.cell')
+        const count = (/** @type {HTMLElement} */ c) => cells.filter((x) => x.textContent === c.textContent).length
+        const pick = /** @type {HTMLElement} */ (cells.find((c) => (count(c) === 1) !== wrong))
+        pick.click()
+      } else if (say.startsWith('What comes next')) {
+        const s = all('.chip:not(.q)').map((c) => Number(c.textContent))
+        const d1 = s[1] - s[0]
+        const ratio = s[1] / s[0]
+        const answer = s.slice(1).every((x, i) => x - s[i] === d1) ? s[4] + d1
+          : s.slice(1).every((x, i) => x / s[i] === ratio) ? s[4] * ratio
+            : s[4] + (s[4] - s[3]) + (s[2] - s[1] - d1)
+        const pick = /** @type {HTMLElement} */ (all('.choices button').find((b) => (Number(b.textContent) === answer) !== wrong))
+        pick.click()
+      } else if (say.startsWith('Same or not')) {
+        const [a, b] = all('.pair span').map((x) => x.textContent)
+        all('.yn button')[(a === b) !== wrong ? 0 : 1].click()
+      } else {
+        continue // Echo is still showing its flashes
+      }
+      answered++
+      handled = round
+    }
+    throw new Error('autoplay ran out of time')
+  } finally {
+    observer.disconnect()
+  }
+}

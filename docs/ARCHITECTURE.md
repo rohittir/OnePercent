@@ -1,6 +1,6 @@
 # OnePercent architecture
 
-Status: plan, 6 November 2026. Nothing below is built yet. The single-file prototype `index.html` is the reference for the look, the four games and the level rules.
+Status: built, 6 November 2026 (M0 to M6 of `docs/TASKS.md`; the first deploy waits for the owner's AWS account). The single-file prototype `index.html` stays as the reference for the look.
 
 ## Summary
 
@@ -13,47 +13,53 @@ The model is EHub-Serverless (`~/Documents/projects/CIS/EHub-Serverless`).
 | Part | Choice |
 | --- | --- |
 | Language | Plain JavaScript, ES modules, JSDoc and `// @ts-check`. Node 24. |
-| Web | React with Vite and React Router. Plain CSS with theme tokens. No UI kit. |
+| Web | React with Vite and React Router. Plain CSS with theme tokens. No UI kit. `uqr` draws the QR code. |
 | Shared code | `@onepercent/shared`: zod schemas and pure rules that the web app and the backend both use |
 | API | One Lambda behind an API Gateway HTTP API, routed by `lambda-api` |
-| Data | One DynamoDB table through `dynamodb-onetable` |
+| Data | One DynamoDB table through `dynamodb-onetable`; the sync transaction uses the SDK directly |
 | Content | JSON packs in S3, served by CloudFront |
 | Web hosting | S3 and CloudFront. CloudFront sends `/api/*` to the HTTP API and `/content/*` to the content bucket, so the app has one origin and no CORS. |
+| Offline | A hand-written service worker (`web/public/sw.js`) and a web app manifest; the app installs to the home screen |
 | Infrastructure | AWS CDK in `backend/infra`, stages `dev` and `prod` |
-| Local run | DynamoDB Local in Docker, the API as a local Node server, Vite for the web app. No AWS account is needed to build or test. |
-| Tests | `node:test` for shared and backend, Vitest for web, Playwright for journeys |
+| Local run | DynamoDB Local in Docker (port 8100), the API as a local Node server (port 4100), Vite (port 5180). No AWS account is needed to build or test. |
+| Tests | `node:test` for shared, tools and backend; Vitest for web; Playwright (pinned to 1.63.0) for journeys |
 
 ## Repository layout
 
 | Path | Holds |
 | --- | --- |
-| `web/` | The React app: screens, themes, the game registry and the games |
-| `web/src/games/<gameId>/` | One game: its rules and its round screen |
-| `web/src/themes/<band>/` | One age band's theme: tokens, buddy, words |
-| `shared/` | Schemas, level and merge rules, age bands, word lists for IDs |
-| `backend/` | Lambda source, CDK, jobs, tests. Its own `package.json`, not a workspace (as in EHub). |
-| `content/<gameId>/` | Content packs as JSON, checked by the game's schema |
-| `e2e/` | Playwright journeys against the local stack |
-| `docs/` | This file and `TASKS.md` |
+| `web/src/screens/` | The screens (see "Web app") |
+| `web/src/games/<gameId>/` | One game: its rules and its round screen. `web/src/games/index.js` is the registry. |
+| `web/src/themes/<band>/` | One age band's theme: `index.jsx` (buddy, words, home and day-done parts) and `theme.css` (tokens) |
+| `web/src/store.js`, `sync.js`, `api.js`, `content.js` | The device's players, the sync loop, the API calls, the content packs |
+| `web/csp.js` | The Content-Security-Policy, sent by CloudFront and by `vite preview` |
+| `shared/` | Schemas, level, progress and merge rules, today's set, age bands, the ID words |
+| `backend/src/` | The Lambda: `handler.js`, `players.js` (routes), `data/` (the table), `lib/` |
+| `backend/infra/` | The CDK app |
+| `content/<type>/<id>.json` | Content packs |
+| `tools/` | `content.js` and `content-publish.js` (build and upload packs) |
+| `e2e/` | Playwright journeys, and `make-icons.js`, which renders the app icons |
+| `docs/` | This file, `TASKS.md`, `RUNBOOK.md` |
 
 ## Players and devices
 
 ### The player ID
 
-- A word ID: `adjective-animal-NN`, for example `brave-otter-27`. Lists of 128 kid-safe adjectives and 128 animals give about 1.6 million IDs.
+- A word ID: `adjective-animal-NN`, for example `brave-otter-27`. Lists of 128 kid-safe adjectives and 128 animals with 90 numbers give about 1.47 million IDs.
 - The server picks it when the player is first synced, with a conditional put, and retries on a clash.
 - A player made offline plays at once with no ID. The ID appears after the first sync.
+- What a child types is normalized: `Brave Otter 27` is `brave-otter-27`.
 
 ### PIN and device tokens
 
 - The child picks a 4-digit PIN at setup. The server keeps only its scrypt hash and salt.
 - Creating a player, or claiming one with ID and PIN, returns a device token: 32 random bytes. The server keeps only its SHA-256 hash, up to 10 per player (the oldest drops).
-- Sync calls carry the token. The PIN is never sent again after setup or claim.
-- After 5 wrong PINs a player is locked for 15 minutes. An unknown ID and a wrong PIN get the same answer in the same time, so IDs can't be discovered.
+- Sync calls carry the token. The device keeps the PIN too, to show it on "Play on another device".
+- After 5 wrong PINs a player is locked for 15 minutes. An unknown ID and a wrong PIN get the same answer after the same scrypt work.
 
 ### Moving to another device
 
-- **By QR:** the "Play on another device" screen shows a QR code of `https://<host>/join#brave-otter-27.4821`. The phone's own camera opens it, so the app needs no scanner. The ID and PIN are in the fragment, which never reaches the server or its logs.
+- **By QR:** the "Play on another device" screen shows a QR code of `https://<host>/join#brave-otter-27.4821`. The phone's own camera opens it, so the app needs no scanner. The ID and PIN are in the fragment, which never reaches the server or its logs, and the Join screen removes it from the address bar.
 - **By typing:** the Join screen asks for the ID and the PIN.
 - Both paths call the same claim route. Afterwards both devices stay active and in sync.
 
@@ -69,34 +75,43 @@ The model is EHub-Serverless (`~/Documents/projects/CIS/EHub-Serverless`).
 ```
 onepercent:v1 = {
   players: [{
-    localId, code, token,          // code and token are null until the first sync
-    name, age, startLevels, muted, updatedAt,
-    days: { '2026-11-06': { echo: { score, level, rounds, playedAt }, ... } },
-    dirtyDays: ['2026-11-06'], rev
+    localId, code, token, pin,      // code and token are null until the first sync
+    name, age, muted, updatedAt, startLevels,
+    days: { '2026-11-06': { echo: { skill, score, level, rounds, playedAt }, ... } },
+    dirty: { '2026-11-06': 2 },     // dates changed since the last sync, with a change counter
+    profileDirty, rev, syncedAt, unlinked
   }],
-  lastPlayer: localId
+  current: localId
 }
 ```
 
+A sync clears a dirty date only if its counter did not move while the request was out.
+
 ### Derived, never stored
 
-Levels, stars, streak and days played come from `days` by one pure function in `shared/` that replays the days in date order with `nextLevel`. Two devices that hold the same days therefore show the same levels. `startLevels` is fixed when the player is made, so changing the age later doesn't rewrite the past.
+Levels, stars, streak and days played come from `days` by `progress()` in `shared/progress.js`, which replays the days in date order with `nextLevel`. Each skill moves once a day, by its best score that day. Today's levels come from the days before today, so they hold still while today's results arrive. Two devices that hold the same days show the same levels. `startLevels` is fixed when the player is made.
+
+### Results and the day
+
+- Each game's result is saved as the game ends, so stopping part-way keeps the finished games.
+- A day counts as played (for streaks and Percy's growth) when every skill has a result.
+- A game that already has a result today, from any device once synced, counts as played and is skipped.
 
 ### Merge rules
 
 | Data | Rule |
 | --- | --- |
-| A game's result on a date | Keep the higher score. On a tie, keep the earlier `playedAt`. |
+| A game's result on a date | Keep the higher score. On a tie, the earlier `playedAt`; on a full tie, a fixed order that ignores key order. |
 | Name, age, muted | The later `updatedAt` wins |
-| The day lock | A day is done when every game of that day's set has a result |
 
-The rules are commutative, so devices converge whatever order they sync in.
+The rules are commutative and idempotent, so devices converge whatever order they sync in.
 
 ### When a device syncs
 
-- On open, after each finished day, every 5 minutes while open, and when the page is hidden.
-- It sends the profile and the dirty days, and receives every day with a `rev` above its own.
-- Offline, the dirty days wait. A failed sync retries with backoff, and play never waits for the network.
+- On open, 2 seconds after a change (a new player, a finished game, the sound setting), every 5 minutes, when the page hides, and when the network returns.
+- It sends the profile (when changed) and up to 300 dirty days, and receives every day with a `rev` above its own.
+- Offline, the dirty days wait. A failure retries after 5, 10, 20 seconds and so on, up to 5 minutes. Play never waits for the network.
+- If the server refuses the token (the player was deleted elsewhere), the player is marked "not online" and Settings offers to join again.
 
 ## Data model
 
@@ -107,55 +122,56 @@ One table, keys `pk` and `sk`. No secondary index is needed. Only `backend/src/d
 | Player | `PLAYER#<code>` | `PROFILE` | name, age, startLevels, muted, updatedAt, pinHash, pinSalt, tokenHashes, failedPins, lockedUntil, rev, createdAt |
 | Day | `PLAYER#<code>` | `DAY#<YYYY-MM-DD>` | results by game id, rev |
 
-`rev` is a counter on the player item, raised by each sync that writes. Every day written in that sync gets the new value.
+A sync writes its days and raises the player's `rev` in one transaction, conditional on the `rev` and each day being as read; on a conflict it re-reads and retries (up to 5 times, then 503). So the days of each `rev` commit in order, and a reader that reads the `rev` before the days can never miss a day at or under it.
 
 ## API
 
-All routes are under `/api/v1`. Bodies are checked with the zod schemas of `shared/`.
+All routes are under `/api/v1`. Bodies are checked with the zod schemas of `shared/schemas.js`; a bad body answers 400.
 
 | Route | Auth | Does |
 | --- | --- | --- |
-| `POST /players` | none | Makes a player from name, age, PIN and any days already played. Returns code, token and profile. |
-| `POST /players/claim` | none | Takes code and PIN. Returns a token, the profile and all days. 401 for a wrong pair, 429 while locked. |
-| `POST /players/{code}/sync` | token | Takes the profile, the dirty days and `since`. Merges them, then returns the profile, the days with `rev` above `since`, and the new `rev`. |
+| `POST /players` | none | Makes a player from the profile, start levels, PIN and any days already played. Returns code, token, profile, days and `rev`. |
+| `POST /players/claim` | none | Takes code and PIN. Returns a new token, the profile, start levels, all days and `rev`. 401 for a wrong pair, 429 while locked. |
+| `POST /players/{code}/sync` | token | Takes the profile (optional), dirty days and `since`. Merges, then returns the profile, the days with `rev` above `since`, and the new `rev`. |
 | `PUT /players/{code}/pin` | token | Changes the PIN |
 | `DELETE /players/{code}` | token | Deletes the player and all their days |
 | `GET /health` | none | Liveness |
 
-A response never carries the PIN hash, its salt or token hashes.
+A response never carries the PIN hash, its salt, token hashes or the lockout fields. Unexpected errors answer 500 with no detail and are logged.
 
 ## Games and content
 
 ### A game
 
-A game is a folder in `web/src/games/` that exports:
+A game is a folder in `web/src/games/` whose `index.jsx` exports:
 
 | Field | Meaning |
 | --- | --- |
-| `id`, `name`, `icon`, `how` | Identity and the one-line instructions |
+| `id`, `name`, `icon`, `how`, `color` | Identity, the one-line instructions, and its three colours |
 | `skill` | One of `memory`, `focus`, `logic`, `speed`. Levels belong to skills, so a new game starts at the child's level for that skill. |
 | `ages` | The ages it suits, for example `[7, 14]` |
 | `rounds` | Rounds per session |
-| `difficulty(level)` | Turns a level into the game's settings (sequence length, grid size, time limit) |
-| `contentSchema` | The zod schema of its packs, if it uses content |
+| `settings(level)` | Turns a level into the game's settings (sequence length, grid size, time limit) |
+| `content` | The content type it reads, if any, for example `pairs` |
 | `Round` | The React component of one round. It gets the settings, the content and `say`, and calls `onDone(true or false)`. |
 
-`web/src/games/index.js` lists the games. The app shell, sync, themes and the day flow don't change when a game is added.
+Add the folder, list it in `web/src/games/index.js`, and the app shell, sync, themes and the day flow take it as it is. A game imports only React, `games/util.js`, `sound.js` and its own folder.
 
 ### Today's set
 
-`pickToday(player, date, games)` in `shared/` picks one game per skill from the games whose `ages` fit the child. When a skill has several games, the pick rotates by date. With today's four games it always picks the same four.
+`pickToday(games, { age, date })` in `shared/today.js` picks one game per skill from the games whose `ages` fit the child. When a skill has several games, the pick rotates by date, the same on every device. With today's four games it always picks the same four.
 
 ### Age bands and themes
 
-`shared/bands.js` lists the bands: `percy` for ages 7–10 and `galaxy` for 11–14. A new band is a new entry plus a folder in `web/src/themes/`, holding the colour tokens, the buddy (Percy, or the rocket) and the words of the screens.
+`shared/bands.js` lists the bands: `percy` for ages 7–10 and `galaxy` for 11–14. A new band is an entry there plus a folder in `web/src/themes/` with `index.jsx` and `theme.css`.
 
 ### Content packs
 
-- Packs are JSON in `content/<gameId>/`. Examples: look-alike pairs, number-rule sets, and later word lists or pictures.
-- `npm run content:publish` checks each pack against its game's schema, names each file by its hash, writes `manifest.json` and uploads both to the content bucket. The files are cached for a year and the manifest for one minute. No app release is needed.
-- On open, the app fetches the manifest, downloads new packs and keeps them in the Cache API, so they work offline.
-- Each game also ships a default pack in its code, so a first launch works offline.
+- Packs are JSON files in `content/<type>/<id>.json`. A pack has an `id`, a `title`, a `type`, the `ages` it fits and its `items`. Today's type is `pairs` (look-alike symbols, each with the level from which it can appear); Odd One Out and Same or Not read it.
+- `npm run content:publish` checks each pack against `shared/schemas.js`, names each file by its hash, writes `manifest.json`, and with `CONTENT_BUCKET` set uploads them. Packs are cached for a year and the manifest for one minute. No app release is needed.
+- On open, the app fetches the manifest, downloads new packs, keeps them in the Cache API, and drops packs the manifest no longer lists. Offline, it uses the last manifest and the kept packs.
+- The starter pack is also bundled in the app, so a first launch works offline. A published pack with the same type and id replaces it.
+- Vite serves `content/` at `/content/` locally, built the same way.
 
 ## Web app
 
@@ -164,44 +180,51 @@ A game is a folder in `web/src/games/` that exports:
 | Who's playing? | `/` |
 | New player: name, age, PIN | `/new` |
 | Home: today's games in the band's theme | `/play` |
-| Game intro and rounds | `/play/:gameId` |
+| Today's games: intro, rounds, feedback | `/play/today` |
 | Day done | `/done` |
 | Play on another device: ID, QR, PIN | `/move` |
 | Join from another device | `/join` (QR links land here with a fragment) |
-| Settings: sound, change PIN, delete player | `/settings` |
+| Settings: sound, another device, change PIN, delete player | `/settings` |
 
-The layout is phone first, then iPad (two columns), then desktop (iPad layout, centred), as in the prototype.
+The layout is phone first, then iPad (two columns from 700px), then desktop (iPad layout, centred).
 
 ## Infrastructure
 
 | Stack | Holds |
 | --- | --- |
-| Data | The table (pay per request, point-in-time recovery on prod) and the content bucket |
-| App | The API Lambda and its alias, the HTTP API with a throttle, the web bucket, and the CloudFront distribution: SPA rewrite, security headers, `/api/*` and `/content/*` behaviours, and an origin secret header so the API answers only through CloudFront |
+| Data | The table: pay per request; on prod, point-in-time recovery, deletion protection and kept on stack deletion |
+| App | The API Lambda (Node 24, ARM), the HTTP API with a throttle, the web and content buckets (private, kept on stack deletion), and the CloudFront distribution: the SPA rewrite, the security headers with the CSP, and the `/api/*` and `/content/*` behaviours |
 
-`backend/infra/lib/stages.js` holds every difference between `dev` and `prod`, as in EHub.
+The content bucket lives in the app stack, beside the distribution that reads it, because a bucket in another stack would make the two stacks depend on each other. The web app goes up in two parts: hashed files cached for a year, and the rest (`index.html`, `sw.js`, the manifests) checked on every load, with a CloudFront invalidation.
+
+`backend/infra/lib/stages.js` holds every difference between `dev` and `prod`, as in EHub. `DOMAIN_NAME` and `CERTIFICATE_ARN` add a custom domain.
 
 ## Security and privacy
 
 - Only a nickname or first name and an age are stored. No email, no photo, no tracking.
 - Unknown ID and wrong PIN answer alike; PINs lock after 5 tries; tokens and PINs are stored hashed.
 - A child or parent can delete a player, which removes it from the device and the server.
+- The CSP allows scripts only from the app's origin and fonts only from Google Fonts. React renders user text as text; the lint forbids raw HTML.
 
 ## Testing
 
 | Layer | What |
 | --- | --- |
-| shared | Level replay, merge convergence (any order, any duplicates), `pickToday`, ID words, sequence and pair rules |
-| backend | Create, claim, lockout, sync merge and token checks against DynamoDB Local |
-| web | Each game's round, the store and the sync loop with a fake API |
-| e2e | J1: a new player plays a day offline. J2: a second device joins by ID and PIN and sees the progress. J3: two devices play the same day and converge. |
+| shared | Level replay, merge convergence (any order, duplicates, key order), `pickToday`, ID words, schemas |
+| tools | Pack building: hashing, bad packs, wrong folders, duplicate ids |
+| backend | Create, claim, lockout, sync merge, two devices at once, profile edits, PIN change, delete, against DynamoDB Local |
+| web | Each game's round, the puzzle rules, the store, the sync loop and the content loader with fakes, and the screens in both themes |
+| e2e | J1: a day with no backend. J2: joining by ID and PIN, by QR link, and a refused PIN. J3: two devices play the same game offline and converge. J4: the built app opens and plays offline under the CSP. |
 
 ## Risks and open items
 
 | Item | Note |
 | --- | --- |
 | Children's data law | Even a nickname, age and scores may count as a child's personal data (India's DPDP Act, COPPA in the US). The owner should confirm the consent need before a public launch. |
-| AWS account, region, domain | Needed only to deploy. The default is `ap-south-1`, as in EHub. |
+| AWS account, region, domain | Needed only to deploy (`docs/RUNBOOK.md`). The default region is `ap-south-1`, as in EHub. |
 | iPhone home-screen app | A QR link opens Safari, whose storage differs from an installed home-screen app. There, a child joins by typing the ID and PIN. |
 | PIN strength | 10,000 PINs. The lockout limits online guessing. A leaked table could be brute-forced offline, which is accepted for this data. |
-| Clocks | Profile edits use the device clock for "later wins". A wrong clock can lose a name or age edit, never a game result. |
+| A locked ID | It answers 429, which shows that the ID exists; its PIN still protects it. |
+| The API's own address | The HTTP API also answers at its `execute-api` address, outside CloudFront. Every write needs a token, and the stage throttle applies. |
+| Clocks | Profile edits use the device clock for "later wins". A wrong clock can lose a sound or name edit, never a game result. |
+| Percy's growth | The sprout stops growing at 1.8× (about day 60). Long streaks need new growth stages. |

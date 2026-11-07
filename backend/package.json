@@ -14,10 +14,13 @@
     "stack:up": "docker compose up -d --wait dynamodb",
     "stack:down": "docker compose down",
     "build": "node scripts/build.js",
-    "synth": "npm run build && node infra/bin/app.js"
+    "synth": "npm run build && node infra/bin/app.js",
+    "deploy": "npm run build && cdk deploy --all"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1146.0",
+    "@aws-sdk/util-dynamodb": "^3.996.9",
+    "@onepercent/shared": "file:../shared",
     "dynamodb-onetable": "^2.7.7",
     "lambda-api": "^1.5.1"
   },

@@ -4,9 +4,9 @@ OnePercent is a web app of short daily brain games for children aged 7 to 14. Ea
 
 ## Status
 
-6 November 2026: the single-file prototype `index.html` works and is the reference for the look, the four games and the level rules. `design/concepts.html` holds the design directions. The React and AWS serverless build is planned in `docs/ARCHITECTURE.md` and `docs/TASKS.md`. M0 (foundation) is done; M1 (the React app on one device) is next.
+6 November 2026: M0 to M6 of `docs/TASKS.md` are built: the React app with both themes and four games, local-first sync to the Lambda and DynamoDB backend, moving devices by word ID and PIN or QR, content packs, the offline app, CloudFront and the CI and deploy workflows. Only OP-M6-01 is open: the owner's AWS account, region and domain, then the first deploy (`docs/RUNBOOK.md`). The prototype `index.html` and `design/concepts.html` stay as references.
 
-Local run: `npm ci` at the root and in `backend/`, then `npm run stack:up` (DynamoDB Local on port 8100) and `npm run dev` (the API on port 4100). Checks: `npm run lint`, `npm test`, `npm run test:int` (needs the stack), `npm run synth`.
+Local run: `npm ci` at the root and in `backend/`, then `npm run stack:up` (DynamoDB Local on port 8100), `npm run dev` (the API on port 4100) and `npm run dev:web` (http://localhost:5180). Checks: `npm run lint`, `npm test`, `npm run test:int` and `npm run e2e` (both need the stack), `npm run synth`.
 
 ## Where things are
 
@@ -14,8 +14,12 @@ Local run: `npm ci` at the root and in `backend/`, then `npm run stack:up` (Dyna
 | --- | --- |
 | `docs/ARCHITECTURE.md` | The design: stack, players and devices, sync, data model, API, games and content |
 | `docs/TASKS.md` | The ordered build plan, `OP-M0` to `OP-M6`. The first unticked task is next. |
-| `shared/` | `@onepercent/shared`: the level rules and the age bands, used by the web app and the backend |
+| `docs/RUNBOOK.md` | Run locally, deploy, publish content, roll back, remove a stage |
+| `web/` | The React app: `src/screens/`, `src/games/<id>/` (one folder per game, listed in `src/games/index.js`), `src/themes/<band>/`, the store and the sync loop |
+| `shared/` | `@onepercent/shared`: schemas, level, progress and merge rules, today's set, age bands, ID words. Used by the web app and the backend. |
 | `backend/` | The API Lambda (`src/`), its key schema (`src/data/schema.js`), the CDK app (`infra/`), DynamoDB Local (`compose.yaml`). Its own `package.json`, not a workspace. |
+| `content/<type>/` | Content packs; `npm run content:publish` checks and uploads them |
+| `e2e/` | Playwright journeys J1 to J4 |
 | `index.html` | The prototype. Open `index.html?test` for its self-check. |
 | `design/concepts.html` | The three design directions; A and B were chosen |
 
@@ -43,6 +47,7 @@ The owner made these on 6 November 2026. Don't reopen them.
 4. Only `backend/src/data/schema.js` spells a key.
 5. A game never imports another game, the store or the sync code. It gets its settings and content through its props.
 6. Nothing needs an AWS account to build or test.
+7. Every pack type has its schema in `shared/schemas.js`; the publish script refuses a pack that fails it.
 
 ## Working agreements
 

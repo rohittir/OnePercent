@@ -8,16 +8,22 @@
     "npm": ">=11"
   },
   "workspaces": [
-    "shared"
+    "shared",
+    "web",
+    "e2e"
   ],
   "scripts": {
     "lint": "eslint .",
-    "test": "npm test --workspaces --if-present && npm test --prefix backend",
+    "test": "node --test \"tools/*.test.js\" && npm test --workspaces --if-present && npm test --prefix backend",
     "dev": "npm run dev --prefix backend",
+    "dev:web": "npm run dev -w web",
     "stack:up": "npm run stack:up --prefix backend",
     "stack:down": "npm run stack:down --prefix backend",
     "test:int": "npm run test:int --prefix backend",
-    "synth": "npm run synth --prefix backend"
+    "e2e": "npm run e2e -w e2e --",
+    "synth": "npm run build -w web && npm run synth --prefix backend",
+    "deploy": "npm run build -w web && npm run deploy --prefix backend",
+    "content:publish": "node tools/content-publish.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

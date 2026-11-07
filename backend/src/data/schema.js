@@ -2,6 +2,11 @@
 // The only file that spells a key (CLAUDE.md, rule 4). The models follow docs/ARCHITECTURE.md, "Data model".
 // Times are epoch milliseconds, set by the code that writes them.
 
+/** The keys of the models below, for the raw transaction in players.js. @param {string} code */
+export const playerKey = (code) => ({ pk: `PLAYER#${code}`, sk: 'PROFILE' })
+/** @param {string} code @param {string} date */
+export const dayKey = (code, date) => ({ pk: `PLAYER#${code}`, sk: `DAY#${date}` })
+
 export const SCHEMA = {
   format: 'onetable:1.1.0',
   version: '0.0.1',

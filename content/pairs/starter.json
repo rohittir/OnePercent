@@ -1,0 +1,21 @@
+{
+  "id": "starter",
+  "title": "Starter look-alikes",
+  "type": "pairs",
+  "ages": [7, 14],
+  "items": [
+    { "a": "🍎", "b": "🚗", "level": 0 },
+    { "a": "🐶", "b": "🌵", "level": 0 },
+    { "a": "⭐", "b": "🌙", "level": 0 },
+    { "a": "🐱", "b": "🐯", "level": 5 },
+    { "a": "🍋", "b": "🍌", "level": 10 },
+    { "a": "O", "b": "Q", "level": 15 },
+    { "a": "b", "b": "d", "level": 20 },
+    { "a": "p", "b": "q", "level": 25 },
+    { "a": "6", "b": "9", "level": 30 },
+    { "a": "E", "b": "F", "level": 35 },
+    { "a": "M", "b": "N", "level": 40 },
+    { "a": "🙂", "b": "🙃", "level": 45 },
+    { "a": "C", "b": "G", "level": 50 }
+  ]
+}

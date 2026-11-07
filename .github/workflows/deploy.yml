@@ -1,0 +1,47 @@
+name: Deploy
+# By hand only. Needs the GitHub environment of the stage (dev or prod) with these variables, set by the owner (docs/RUNBOOK.md):
+#   AWS_DEPLOY_ROLE_ARN, AWS_REGION, and optionally DOMAIN_NAME with CERTIFICATE_ARN.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Stage to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency: deploy-${{ inputs.stage }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.stage }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix backend
+      - run: npm test
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: npm run build -w web
+      - run: npm run build && npx cdk deploy --all --require-approval never
+        working-directory: backend
+        env:
+          STAGE: ${{ inputs.stage }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+          CERTIFICATE_ARN: ${{ vars.CERTIFICATE_ARN }}
