@@ -4,7 +4,7 @@ Status: built, 6 November 2026 (M0 to M6 of `docs/TASKS.md`; the first deploy wa
 
 ## Summary
 
-OnePercent is a web app of short daily brain games for children. Each skill has a level, and a good day makes that skill's games about 1% harder the next day. There are no accounts. A device keeps each child's progress in localStorage and syncs it to an AWS serverless backend. A child moves to another device with a word ID and a PIN, or by scanning a QR code. Games ship in code releases, and their content is uploaded by the developer apart from a release.
+OnePercent is a web app of short daily brain games for children. Each skill has a level; passing a game at 80% or more unlocks its next level, about 1% harder, at once. Retries have no limit. There are no accounts. A device keeps each child's progress in localStorage and syncs it to an AWS serverless backend. A child moves to another device with a word ID and a PIN, or by scanning a QR code. Games ship in code releases, and their content is uploaded by the developer apart from a release.
 
 ## Stack
 
@@ -77,34 +77,42 @@ onepercent:v1 = {
   players: [{
     localId, code, token, pin,      // code and token are null until the first sync
     name, age, muted, updatedAt, startLevels,
-    days: { '2026-11-06': { echo: { skill, score, level, rounds, playedAt }, ... } },
+    days: { '2026-11-06': { echo: { skill, best, top, playedAt }, ... } },
     dirty: { '2026-11-06': 2 },     // dates changed since the last sync, with a change counter
     profileDirty, rev, syncedAt, unlinked
   }],
-  current: localId
+  current: localId,
+  deletes: [{ code, token }]        // players deleted here whose online copy is still to go
 }
 ```
 
 A sync clears a dirty date only if its counter did not move while the request was out.
 
+### Results
+
+A day keeps one result per game, over every play of it that day: `best` (the best score, 0 to 1), `top` (the highest level passed that day, -1 for none) and `playedAt` (the latest play). Each play is merged in as it ends, so stopping part-way keeps every finished play. A result of the shape used before 7 November 2026 (one play: `score`, `level`, `rounds`) is read as today's by `normalizeResult`, on the device and on the server.
+
 ### Derived, never stored
 
-Levels, stars, streak and days played come from `days` by `progress()` in `shared/progress.js`, which replays the days in date order with `nextLevel`. Each skill moves once a day, by its best score that day. Today's levels come from the days before today, so they hold still while today's results arrive. Two devices that hold the same days show the same levels. `startLevels` is fixed when the player is made.
+`progress()` in `shared/progress.js` derives everything from `days`:
 
-### Results and the day
+| Value | Rule |
+| --- | --- |
+| A skill's level | One above the highest level passed in it (`top + 1`), or its start level. It rises the moment a game is passed at 80% or more (`PASS` in `shared/levels.js`), never falls, and needs no waiting for tomorrow. |
+| Stars | One to three per game per day, for that day's best score |
+| Streak, days played | Days with at least one play |
+| Growth | 1.01 to the power of the levels passed since day one, over every skill. Percy's sprout and the rocket's distance follow it. |
 
-- Each game's result is saved as the game ends, so stopping part-way keeps the finished games.
-- A day counts as played (for streaks and Percy's growth) when every skill has a result.
-- A game that already has a result today, from any device once synced, counts as played and is skipped.
+The level is a maximum, so it does not depend on the order plays arrive in: two devices that hold the same days show the same levels. `startLevels` is fixed when the player is made.
 
 ### Merge rules
 
 | Data | Rule |
 | --- | --- |
-| A game's result on a date | Keep the higher score. On a tie, the earlier `playedAt`; on a full tie, a fixed order that ignores key order. |
+| A game's result on a date | Field by field, the larger: `best`, `top`, `playedAt` |
 | Name, age, muted | The later `updatedAt` wins |
 
-The rules are commutative and idempotent, so devices converge whatever order they sync in.
+The rules are commutative, associative and idempotent, so devices converge whatever order they sync in.
 
 ### When a device syncs
 
@@ -112,6 +120,7 @@ The rules are commutative and idempotent, so devices converge whatever order the
 - It sends the profile (when changed) and up to 300 dirty days, and receives every day with a `rev` above its own.
 - Offline, the dirty days wait. A failure retries after 5, 10, 20 seconds and so on, up to 5 minutes. Play never waits for the network.
 - If the server refuses the token (the player was deleted elsewhere), the player is marked "not online" and Settings offers to join again.
+- Deleting a player removes it from the device at once and queues its online copy, which the sync deletes now or once the device is online (a 401 means it is already gone). A player deleted while its first create was on the wire is queued too.
 
 ## Data model
 
@@ -161,6 +170,8 @@ Add the folder, list it in `web/src/games/index.js`, and the app shell, sync, th
 
 `pickToday(games, { age, date })` in `shared/today.js` picks one game per skill from the games whose `ages` fit the child. When a skill has several games, the pick rotates by date, the same on every device. With today's four games it always picks the same four.
 
+Home shows today's set as tiles (Percy) or planets (Galaxy), each with its level and today's stars. Each is a link to play it, as often as the child likes; "Play" opens the first game not yet passed today.
+
 ### Age bands and themes
 
 `shared/bands.js` lists the bands: `percy` for ages 7–10 and `galaxy` for 11–14. A new band is an entry there plus a folder in `web/src/themes/` with `index.jsx` and `theme.css`.
@@ -180,8 +191,7 @@ Add the folder, list it in `web/src/games/index.js`, and the app shell, sync, th
 | Who's playing? | `/` |
 | New player: name, age, PIN | `/new` |
 | Home: today's games in the band's theme | `/play` |
-| Today's games: intro, rounds, feedback | `/play/today` |
-| Day done | `/done` |
+| One game: intro (with its level), rounds, then its result: "Next level" after a pass, "Try again" after a miss, and the next game of today's set not yet passed | `/play/:gameId` |
 | Play on another device: ID, QR, PIN | `/move` |
 | Join from another device | `/join` (QR links land here with a fragment) |
 | Settings: sound, another device, change PIN, delete player | `/settings` |
@@ -203,18 +213,18 @@ The content bucket lives in the app stack, beside the distribution that reads it
 
 - Only a nickname or first name and an age are stored. No email, no photo, no tracking.
 - Unknown ID and wrong PIN answer alike; PINs lock after 5 tries; tokens and PINs are stored hashed.
-- A child or parent can delete a player, which removes it from the device and the server.
+- A child or parent can delete a player, which removes it from the device at once and from the server now or on the next sync. The app asks in the page, never with `window.confirm`, which in-app browsers and some webviews never show.
 - The CSP allows scripts only from the app's origin and fonts only from Google Fonts. React renders user text as text; the lint forbids raw HTML.
 
 ## Testing
 
 | Layer | What |
 | --- | --- |
-| shared | Level replay, merge convergence (any order, duplicates, key order), `pickToday`, ID words, schemas |
+| shared | Levels from passes, merge convergence (any order, duplicates, old shape), progress, `pickToday`, ID words, schemas |
 | tools | Pack building: hashing, bad packs, wrong folders, duplicate ids |
 | backend | Create, claim, lockout, sync merge, two devices at once, profile edits, PIN change, delete, against DynamoDB Local |
-| web | Each game's round, the puzzle rules, the store, the sync loop and the content loader with fakes, and the screens in both themes |
-| e2e | J1: a day with no backend. J2: joining by ID and PIN, by QR link, and a refused PIN. J3: two devices play the same game offline and converge. J4: the built app opens and plays offline under the CSP. |
+| web | Each game's round, the puzzle rules, the store, the sync loop (with the delete queue) and the content loader with fakes, and the screens in both themes, including the in-page delete |
+| e2e | J1: with no backend, a miss, a retry, a pass that unlocks the next level at once, and the rest of the day. J2: joining by ID and PIN, by QR link, and a refused PIN. J3: two devices play the same game offline and converge. J4: the built app opens and plays offline under the CSP. |
 
 ## Risks and open items
 
@@ -227,4 +237,5 @@ The content bucket lives in the app stack, beside the distribution that reads it
 | A locked ID | It answers 429, which shows that the ID exists; its PIN still protects it. |
 | The API's own address | The HTTP API also answers at its `execute-api` address, outside CloudFront. Every write needs a token, and the stage throttle applies. |
 | Clocks | Profile edits use the device clock for "later wins". A wrong clock can lose a sound or name edit, never a game result. |
-| Percy's growth | The sprout stops growing at 1.8× (about day 60). Long streaks need new growth stages. |
+| Percy's growth | The sprout stops growing at 1.8× (about 60 levels passed). Long runs need new growth stages. |
+| Too hard to pass | A level never falls, so a child who cannot reach 80% stays on it. Each level is only about 1% harder than the last one they passed. |

@@ -11,11 +11,11 @@ export const Code = z.string().regex(CODE_PATTERN)
 export const Pin = z.string().regex(/^\d{4}$/)
 export const Age = z.int().min(AGES[0]).max(AGES[1])
 
+// A game's result on one date, over every play that day (shared/merge.js).
 export const Result = z.strictObject({
   skill: z.enum(SKILLS),
-  score: z.number().min(0).max(1),
-  level: z.int().min(0).max(10_000),
-  rounds: z.int().min(1).max(100),
+  best: z.number().min(0).max(1),
+  top: z.int().min(-1).max(10_000),
   playedAt: z.int().positive(),
 })
 export const Results = z.record(GameId, Result).refine((r) => Object.keys(r).length <= 20, 'too many games in a day')

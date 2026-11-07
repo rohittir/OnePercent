@@ -1,7 +1,9 @@
 // @ts-check
-// Plays today's unfinished games in order. Each game's result is saved as it ends, so stopping keeps the finished ones.
+// One game: its intro, its rounds, then its result. A pass (80%+) unlocks the next level at once ("Next level"); a miss offers
+// "Try again". Retries have no limit, and each play is saved as it ends (shared/merge.js keeps the best of the day).
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import { passed, starsFor } from '@onepercent/shared/levels.js'
 import { progress } from '@onepercent/shared/progress.js'
 import { pickToday } from '@onepercent/shared/today.js'
 import { contentFor } from '../content.js'
@@ -11,41 +13,54 @@ import { buzz, sound } from '../sound.js'
 import { recordResult, today } from '../store.js'
 import { requestSync } from '../sync.js'
 import { useTheme } from '../themes/index.js'
+import { Confetti, Stars } from './parts.jsx'
+
+/** @typedef {import('../games/index.js').Game} Game */
 
 /** @param {{ player: import('../store.js').Player }} props */
 export function Session({ player }) {
+  const { gameId = '' } = useParams()
+  // Keyed, so moving to another game starts it fresh.
+  return <GameFlow key={gameId} player={player} gameId={gameId} />
+}
+
+/** @param {{ player: import('../store.js').Player, gameId: string }} props */
+function GameFlow({ player, gameId }) {
   const theme = useTheme(player.age)
   const navigate = useNavigate()
   const date = useMemo(() => today(), [])
-  const set = useMemo(() => pickToday(GAMES, { age: player.age, date }), [player.age, date])
-  // Today's levels come from the days before today, so they hold still while today's results arrive.
-  const { levels, daysPlayed } = useMemo(() => progress(player, date), [player.startLevels, date])
-  const todo = set.filter((g) => !player.days[date]?.[g.id])
+  const [run, setRun] = useState(0)
+  const [result, setResult] = useState(/** @type {{ score: number, level: number } | null} */ (null))
+  const game = GAMES.find((g) => g.id === gameId && player.age >= g.ages[0] && player.age <= g.ages[1])
+  if (!game) return <Navigate to="/play" replace />
 
-  useEffect(() => {
-    if (!todo.length) navigate('/done', { replace: true })
-  }, [todo.length, navigate])
-  if (!todo.length) return null
+  const prog = progress(player, date)
+  const level = prog.levels[game.skill] ?? 0
 
-  const game = todo[0]
-  const level = levels[game.skill] ?? 0
+  if (result) {
+    const set = pickToday(GAMES, { age: player.age, date })
+    const passedToday = (/** @type {Game} */ g) => (player.days[date]?.[g.id]?.top ?? -1) >= 0
+    const at = set.indexOf(game)
+    const next = [...set.slice(at + 1), ...set.slice(0, Math.max(at, 0))].find((g) => g !== game && !passedToday(g))
+    return <Result game={game} result={result} theme={theme} grown={prog.gained} next={next} onAgain={() => { setResult(null); setRun(run + 1) }} />
+  }
   return (
-    <GameRun key={game.id} game={game} index={set.indexOf(game)} total={set.length} level={level} theme={theme} days={daysPlayed}
+    <GameRun key={run} game={game} level={level} theme={theme} grown={prog.gained}
       content={game.content ? contentFor(game.content, player.age) : undefined}
       onQuit={() => navigate('/play')}
       onFinish={(score) => {
-        recordResult(player.localId, date, game.id, { skill: game.skill, score, level, rounds: game.rounds, playedAt: Date.now() })
+        recordResult(player.localId, date, game.id, { skill: game.skill, best: score, top: passed(score) ? level : -1, playedAt: Date.now() })
         requestSync()
+        setResult({ score, level })
       }} />
   )
 }
 
 /**
- * One game: its intro, then its rounds with feedback between them.
- * @param {{ game: import('../games/index.js').Game, index: number, total: number, level: number, theme: import('../themes/index.js').Theme,
- *   days: number, content: any, onFinish: (score: number) => void, onQuit: () => void }} props
+ * @param {{ game: Game, level: number, theme: import('../themes/index.js').Theme, grown: number, content: any,
+ *   onFinish: (score: number) => void, onQuit: () => void }} props
  */
-function GameRun({ game, index, total, level, theme, days, content, onFinish, onQuit }) {
+function GameRun({ game, level, theme, grown, content, onFinish, onQuit }) {
   const [round, setRound] = useState(0)
   const [say, setSay] = useState('')
   const [feedback, setFeedback] = useState(/** @type {'right' | 'wrong' | null} */ (null))
@@ -55,16 +70,17 @@ function GameRun({ game, index, total, level, theme, days, content, onFinish, on
   const later = useLater()
   const settings = useMemo(() => game.settings(level), [game, level])
   const vars = /** @type {any} */ ({ '--c': game.color[0], '--e': game.color[1], '--l': game.color[2] })
-  const quit = <button className="pill" aria-label="Stop playing" onClick={() => { if (confirm('Stop for now? Finished games are saved.')) onQuit() }}>✕</button>
+  // Finished plays are saved, so leaving needs no warning.
+  const quit = <button className="pill" aria-label="Stop playing" onClick={onQuit}>✕</button>
 
   if (round === 0) {
     return (
       <div className="play" style={vars}>
-        <div className="topbar">{quit}<span className="pill">Game {index + 1} of {total}</span></div>
+        <div className="topbar">{quit}<span className="pill">Level {level}</span></div>
         <div className="intro">
           <div className="badge" aria-hidden="true">{game.icon}</div>
           <h1>{game.name}</h1>
-          <p className="muted">{SKILL_NAMES[game.skill]}</p>
+          <p className="muted">{SKILL_NAMES[game.skill]} · Level {level}</p>
           <p className="how">{game.how}</p>
         </div>
         <button className="cta" id="go" autoFocus onClick={() => { sound('tap'); setRound(1) }}>Start</button>
@@ -102,7 +118,7 @@ function GameRun({ game, index, total, level, theme, days, content, onFinish, on
         <span className="pill" aria-hidden="true">{game.icon}</span>
       </div>
       <div className="coach">
-        {theme.Coach && <theme.Coach days={days} mood={feedback} />}
+        {theme.Coach && <theme.Coach grown={grown} mood={feedback} />}
         <div className="bubble" id="say" aria-live="polite">{say}</div>
       </div>
       <section className={`board${feedback ? ` ${feedback}` : ''}`} id="area">
@@ -110,5 +126,34 @@ function GameRun({ game, index, total, level, theme, days, content, onFinish, on
       </section>
       <div className="foot">{game.name} · round {round} of {game.rounds}{combo >= 2 ? ` · 🔥 ${combo} in a row` : ''}</div>
     </div>
+  )
+}
+
+/**
+ * @param {{ game: Game, result: { score: number, level: number }, theme: import('../themes/index.js').Theme, grown: number,
+ *   next: Game | undefined, onAgain: () => void }} props
+ */
+function Result({ game, result: { score, level }, theme, grown, next, onAgain }) {
+  const ok = passed(score)
+  useEffect(() => {
+    sound(ok ? 'win' : 'bad')
+    buzz(ok ? [30, 50, 30] : 80)
+  }, [ok])
+  const vars = /** @type {any} */ ({ '--c': game.color[0], '--e': game.color[1], '--l': game.color[2] })
+  return (
+    <>
+      {ok && <Confetti />}
+      <div className="done result" style={vars}>
+        <theme.Cheer grown={grown} ok={ok} />
+        <h1>{ok ? `Level ${level + 1} unlocked!` : 'So close!'}</h1>
+        <Stars n={starsFor(score)} />
+        <p className="muted">
+          {ok ? theme.words.grew : `${game.name}: ${Math.round(score * 100)}%. Get 80% to unlock the next 1%. Try as many times as you like.`}
+        </p>
+        <button className="cta" id="again" autoFocus onClick={() => { sound('tap'); onAgain() }}>{ok ? 'Next level ▶' : 'Try again ↻'}</button>
+        {next && <Link className="chunk" id="next-game" to={`/play/${next.id}`}>Next game: {next.icon} {next.name}</Link>}
+        <Link className="ghost" id="home" to="/play">Home</Link>
+      </div>
+    </>
   )
 }

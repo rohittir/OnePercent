@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { App } from './App.jsx'
-import { resetForTests } from './store.js'
+import { getState, resetForTests } from './store.js'
 
 beforeEach(() => {
   resetForTests()
@@ -23,12 +23,14 @@ function makePlayer(name, age) {
   fireEvent.click(screen.getByRole('button', { name: "Let's go!" }))
 }
 
-test('ages up to 10 get Percy: a new player lands on today\'s four games', () => {
+test('ages up to 10 get Percy: today\'s four games, each one a link to play it', () => {
   makePlayer('Maya', 8)
   expect(document.body.dataset.theme).toBe('percy')
   expect(screen.getByText('Ready to grow, Maya?')).toBeTruthy()
-  expect(document.querySelectorAll('.tile')).toHaveLength(4)
-  expect(screen.getByRole('link', { name: 'Play ▶' })).toBeTruthy()
+  const tiles = [...document.querySelectorAll('a.tile')]
+  expect(tiles.map((t) => t.getAttribute('href'))).toEqual(['/play/echo', '/play/odd-one-out', '/play/whats-next', '/play/same-or-not'])
+  expect(tiles[0].textContent).toContain('Level 5')
+  expect(screen.getByRole('link', { name: 'Play ▶' }).getAttribute('href')).toBe('/play/echo')
   expect(screen.getByRole('status').textContent).toBe('Saving…') // online, not synced yet
 })
 
@@ -36,17 +38,29 @@ test('ages over 10 get the galaxy: missions and planets', () => {
   makePlayer('Arjun', 12)
   expect(document.body.dataset.theme).toBe('galaxy')
   expect(screen.getByText('Mission 1')).toBeTruthy()
-  expect(document.querySelectorAll('.planet')).toHaveLength(4)
+  expect(document.querySelectorAll('a.planet')).toHaveLength(4)
 })
 
-test('play starts with the first game\'s intro; Who\'s playing lists every player', () => {
+test('a game opens on its intro at the child\'s level, and ✕ goes home with no question', () => {
   makePlayer('Maya', 8)
   fireEvent.click(screen.getByRole('link', { name: 'Play ▶' }))
   expect(screen.getByRole('heading', { name: 'Echo' })).toBeTruthy()
-  expect(screen.getByText('Game 1 of 4')).toBeTruthy()
+  expect(screen.getByText('Working memory · Level 5')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Stop playing' }))
+  expect(screen.getByText('Ready to grow, Maya?')).toBeTruthy()
+})
+
+test('deleting asks in the page, then the player leaves this device', () => {
+  makePlayer('Maya', 8)
   cleanup()
-  open('/')
-  expect(screen.getByRole('button', { name: /Maya/ })).toBeTruthy()
+  open('/settings')
+  fireEvent.click(screen.getByRole('button', { name: 'Delete Maya' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Keep Maya' }))
+  expect(getState().players).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Delete Maya' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Yes, delete Maya' }))
+  expect(getState().players).toHaveLength(0)
+  expect(screen.getByRole('heading', { name: 'OnePercent' })).toBeTruthy() // no players left: New player
 })
 
 test('screens that need a player send you to "Who\'s playing?" without one', () => {

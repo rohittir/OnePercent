@@ -58,3 +58,11 @@ The build plan for `docs/ARCHITECTURE.md`. Work in order; each task ends with a 
 | --- | --- | --- |
 | OP-M6-01 | Owner: AWS account, region, domain and certificate, the CDK bootstrap ✓ (6 November 2026: prod in us-east-1 with the owner's domain). The domain's CNAME at its DNS host ✓. Still open: the GitHub OIDC role and environments for the Deploy workflow (`docs/RUNBOOK.md`). | Owner confirms |
 | OP-M6-02 ✓ | The web bucket and the CloudFront distribution (`/api/*`, `/content/*`, the CSP); GitHub Actions CI and the manual deploy workflow; the runbook | `npm run synth`. Prod deployed from the owner's machine on 6 November 2026; the starter pack published; a create, claim, sync and delete round trip passed through CloudFront and was cleaned up. |
+
+## M7 Owner feedback of 6 November 2026 ✓
+
+| Task | Does | Check |
+| --- | --- | --- |
+| OP-M7-01 ✓ | Delete in Settings did nothing: `window.confirm` returns false at once in in-app browsers, and any API error stopped the local delete. Now the page asks, the player leaves the device at once, and the online copy is queued for the sync. "Stop playing" no longer asks. | Vitest (App, store, sync) |
+| OP-M7-02 ✓ | Unlimited retries: every game on Home is a link to play it again, at any time; each play merges into the day (best score, highest level passed) | Vitest; J1 |
+| OP-M7-03 ✓ | A pass (80%+) unlocks the next level at once; a level is one above the highest passed and never falls. Results become `{ skill, best, top, playedAt }`; the old shape is read as the new one. | `npm test -w shared`; `npm run test:int`; J1, J3 |

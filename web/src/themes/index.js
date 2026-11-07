@@ -7,17 +7,18 @@ import percy from './percy/index.jsx'
 
 /**
  * @typedef {ReturnType<typeof import('@onepercent/shared/progress.js').progress>} Progress
- * @typedef {{ game: import('../games/index.js').Game, status: any }} GameStatus
+ * @typedef {{ game: import('../games/index.js').Game, status: any, to: string }} GameStatus
  * @typedef {{
  *   id: string,
- *   words: { start: string, bye: string, good: string[], bad: string[] },
+ *   words: { start: string, again: string, grew: string, allDone: string, good: string[], bad: string[] },
  *   stat: (prog: Progress) => string,
  *   Face: () => any,
- *   Coach: ((props: { days: number, mood: 'right' | 'wrong' | null }) => any) | null,
+ *   Coach: ((props: { grown: number, mood: 'right' | 'wrong' | null }) => any) | null,
+ *   Cheer: (props: { grown: number, ok: boolean }) => any,
  *   HomeHero: (props: { name: string, prog: Progress, day: number, done: boolean, count: number }) => any,
  *   HomeGames: (props: { games: GameStatus[], day: number, done: boolean }) => any,
- *   DoneHero: (props: { prog: Progress }) => any,
  * }} Theme
+ *   done: every game of today's set has been passed today
  */
 
 /** @type {Record<string, Theme>} */

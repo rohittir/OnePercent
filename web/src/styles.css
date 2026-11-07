@@ -22,6 +22,10 @@ h1 { font-size: 32px; line-height: 1.1; margin: 0; font-weight: 700; }
 .chunk:active, .cell:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--edge); }
 .ghost { color: var(--muted); text-decoration: underline; font-size: 15px; padding: 8px; align-self: center; }
 .danger { color: var(--error); }
+.danger-fill { background: #e11d48; color: #fff; box-shadow: 0 5px 0 #9f1239; }
+a.chunk { display: block; text-align: center; text-decoration: none; align-self: stretch; font-size: 20px; }
+a.tile, a.planet { text-decoration: none; color: inherit; }
+a.tile { color: #fff; }
 
 /* Characters and motion */
 .percy { display: block; height: auto; }
@@ -87,6 +91,8 @@ h1 { font-size: 32px; line-height: 1.1; margin: 0; font-weight: 700; }
 /* Day done */
 .done { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; width: 100%; max-width: 520px; margin: 0 auto; }
 .grown { position: relative; animation: pop .6s; } .grown .percy { width: 170px; }
+.result .stars { font-size: 36px; }
+.result .muted { max-width: 360px; }
 .up-chip { position: absolute; right: -24px; top: 24px; background: #22c55e; color: #fff; }
 .rows { align-self: stretch; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .res { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 10px 14px; font-weight: 600; box-shadow: 0 3px 0 var(--edge); }

@@ -2,15 +2,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { BANDS, AGES, bandFor } from './bands.js'
-import { SKILLS, nextLevel, startLevels, starsFor } from './levels.js'
+import { PASS, SKILLS, passed, startLevels, starsFor } from './levels.js'
 
-test('nextLevel: up on 80%+, down under 50%, never below 0', () => {
-  assert.equal(nextLevel(5, 0.8), 6)
-  assert.equal(nextLevel(5, 1), 6)
-  assert.equal(nextLevel(5, 0.6), 5)
-  assert.equal(nextLevel(5, 0.5), 5)
-  assert.equal(nextLevel(5, 0.4), 4)
-  assert.equal(nextLevel(0, 0), 0)
+test('a pass is 80% or more', () => {
+  assert.equal(PASS, 0.8)
+  assert.deepEqual([1, 0.8, 0.79, 0.6, 0].map(passed), [true, true, false, false, false])
 })
 
 test('starsFor: 3 from 90%, 2 from 60%, else 1', () => {

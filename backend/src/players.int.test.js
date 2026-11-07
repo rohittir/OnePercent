@@ -24,8 +24,8 @@ async function call(method, path, body, token) {
 
 const profile = { name: 'Maya', age: 8, muted: false, updatedAt: 1000 }
 const startLevels = { memory: 5, focus: 5, logic: 5, speed: 5 }
-/** @param {string} skill @param {number} score @param {number} [playedAt] */
-const r = (skill, score, playedAt = 1) => ({ skill, score, level: 5, rounds: 5, playedAt })
+/** @param {string} skill @param {number} best @param {number} top @param {number} [playedAt] */
+const r = (skill, best, top, playedAt = 1) => ({ skill, best, top, playedAt })
 const SECRET = /pinHash|pinSalt|tokenHashes|failedPins|lockedUntil/
 
 /** @param {Record<string, any>} [days] */
@@ -36,25 +36,25 @@ async function newPlayer(days = {}) {
 }
 
 test('create: a word ID, a token, and the days played offline', async () => {
-  const res = await newPlayer({ '2026-11-05': { echo: r('memory', 0.8) } })
+  const res = await newPlayer({ '2026-11-05': { echo: r('memory', 0.8, 5) } })
   assert.match(res.code, /^[a-z]+-[a-z]+-\d\d$/)
   assert.ok(res.token.length > 30)
   assert.deepEqual(res.profile, profile)
-  assert.equal(res.days['2026-11-05'].echo.score, 0.8)
+  assert.deepEqual(res.days['2026-11-05'].echo, r('memory', 0.8, 5))
   assert.equal(res.rev, 1)
   assert.doesNotMatch(JSON.stringify(res), SECRET)
   assert.equal((await call('POST', '/players', { profile, startLevels, pin: '48', days: {} })).status, 400)
 })
 
 test('claim: a wrong PIN and an unknown ID answer alike; the right one gives a new token and every day', async () => {
-  const { code } = await newPlayer({ '2026-11-05': { echo: r('memory', 1) } })
+  const { code } = await newPlayer({ '2026-11-05': { echo: r('memory', 1, 5) } })
   const wrong = await call('POST', '/players/claim', { code, pin: '0000' })
   const unknown = await call('POST', '/players/claim', { code: 'nobody-here-11', pin: '4821' })
   assert.equal(wrong.status, 401)
   assert.deepEqual([unknown.status, unknown.raw], [wrong.status, wrong.raw])
   const ok = await call('POST', '/players/claim', { code, pin: '4821' })
   assert.equal(ok.status, 200)
-  assert.equal(ok.body.days['2026-11-05'].echo.score, 1)
+  assert.equal(ok.body.days['2026-11-05'].echo.best, 1)
   assert.deepEqual(ok.body.startLevels, startLevels)
   assert.doesNotMatch(ok.raw, SECRET)
   assert.equal((await call('POST', `/players/${code}/sync`, { since: 0, days: {} }, ok.body.token)).status, 200, 'the new token works')
@@ -73,21 +73,21 @@ test('claim: five wrong PINs lock the player for 15 minutes, even against the ri
   }
 })
 
-test('sync: needs the token; keeps the best score per game; returns only days past `since`', async () => {
-  const { code, token, rev } = await newPlayer({ '2026-11-05': { echo: r('memory', 0.6) } })
+test('sync: needs the token; merges field by field; returns only days past `since`', async () => {
+  const { code, token, rev } = await newPlayer({ '2026-11-05': { echo: r('memory', 0.6, -1) } })
   assert.equal((await call('POST', `/players/${code}/sync`, { since: 0, days: {} })).status, 401)
   assert.equal((await call('POST', `/players/${code}/sync`, { since: 0, days: {} }, 'not-the-token')).status, 401)
 
   const res = await call('POST', `/players/${code}/sync`, {
-    since: rev, days: { '2026-11-05': { echo: r('memory', 0.4, 2), odd: r('focus', 1) }, '2026-11-06': { echo: r('memory', 1) } },
+    since: rev, days: { '2026-11-05': { echo: r('memory', 0.4, -1, 2), odd: r('focus', 1, 5) }, '2026-11-06': { echo: r('memory', 1, 5) } },
   }, token)
   assert.equal(res.status, 200)
-  assert.equal(res.body.days['2026-11-05'].echo.score, 0.6, 'the lower score lost')
-  assert.equal(res.body.days['2026-11-05'].odd.score, 1)
-  assert.equal(res.body.days['2026-11-06'].echo.score, 1)
+  assert.deepEqual(res.body.days['2026-11-05'].echo, r('memory', 0.6, -1, 2), 'the best score stays; the latest play is kept')
+  assert.deepEqual(res.body.days['2026-11-05'].odd, r('focus', 1, 5))
+  assert.deepEqual(res.body.days['2026-11-06'].echo, r('memory', 1, 5))
   assert.equal(res.body.rev, rev + 1)
 
-  const again = await call('POST', `/players/${code}/sync`, { since: res.body.rev, days: { '2026-11-06': { echo: r('memory', 1) } } }, token)
+  const again = await call('POST', `/players/${code}/sync`, { since: res.body.rev, days: { '2026-11-06': { echo: r('memory', 1, 5) } } }, token)
   assert.deepEqual(again.body.days, {}, 'nothing new: no write, nothing returned')
   assert.equal(again.body.rev, res.body.rev)
 })
@@ -96,13 +96,21 @@ test('sync: two devices at once both land, never losing a result', async () => {
   const { code, token } = await newPlayer()
   const claimed = await call('POST', '/players/claim', { code, pin: '4821' })
   const [a, b] = await Promise.all([
-    call('POST', `/players/${code}/sync`, { since: 0, days: { '2026-11-06': { echo: r('memory', 0.8) }, '2026-11-07': { echo: r('memory', 1) } } }, token),
-    call('POST', `/players/${code}/sync`, { since: 0, days: { '2026-11-06': { odd: r('focus', 0.6) } } }, claimed.body.token),
+    call('POST', `/players/${code}/sync`, { since: 0, days: { '2026-11-06': { echo: r('memory', 0.8, 5) }, '2026-11-07': { echo: r('memory', 1, 6) } } }, token),
+    call('POST', `/players/${code}/sync`, { since: 0, days: { '2026-11-06': { odd: r('focus', 0.6, -1) } } }, claimed.body.token),
   ])
   assert.deepEqual([a.status, b.status], [200, 200])
   const all = await call('POST', `/players/${code}/sync`, { since: 0, days: {} }, token)
   assert.deepEqual(Object.keys(all.body.days['2026-11-06']).sort(), ['echo', 'odd'])
   assert.ok(all.body.days['2026-11-07'])
+})
+
+test('sync: a day stored in the old shape (one play) merges and is rewritten in today\'s', async () => {
+  const { code, token } = await newPlayer()
+  await getTable().getModel('Day').create({ code, date: '2026-11-01', rev: 1, results: { echo: { skill: 'memory', score: 0.9, level: 5, rounds: 5, playedAt: 1 } } })
+  const res = await call('POST', `/players/${code}/sync`, { since: 0, days: { '2026-11-01': { echo: r('memory', 0.6, -1, 2) } } }, token)
+  assert.equal(res.status, 200)
+  assert.deepEqual(res.body.days['2026-11-01'].echo, r('memory', 0.9, 5, 2))
 })
 
 test('sync: the later profile edit wins', async () => {
@@ -114,7 +122,7 @@ test('sync: the later profile edit wins', async () => {
 })
 
 test('PIN change and delete', async () => {
-  const { code, token } = await newPlayer({ '2026-11-05': { echo: r('memory', 1) } })
+  const { code, token } = await newPlayer({ '2026-11-05': { echo: r('memory', 1, 5) } })
   assert.equal((await call('PUT', `/players/${code}/pin`, { pin: '1234' }, token)).status, 204)
   assert.equal((await call('POST', '/players/claim', { code, pin: '4821' })).status, 401)
   assert.equal((await call('POST', '/players/claim', { code, pin: '1234' })).status, 200)

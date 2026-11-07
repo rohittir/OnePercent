@@ -1,6 +1,6 @@
 # OnePercent
 
-OnePercent is a web app of short daily brain games for children aged 7 to 14. Each skill has a level, and every good day makes that skill's games about 1% harder. Ages 7–10 see the Percy and pals theme; ages 11–14 see Brain galaxy.
+OnePercent is a web app of short daily brain games for children aged 7 to 14. Each skill has a level; passing a game at 80% or more unlocks its next level, about 1% harder, at once. Retries have no limit. Ages 7–10 see the Percy and pals theme; ages 11–14 see Brain galaxy.
 
 ## Status
 
@@ -38,16 +38,18 @@ The owner made these on 6 November 2026. Don't reopen them.
 | Themes | Percy and pals for ages up to 10, Brain galaxy above 10 |
 | Content | New games ship in code releases. Their content is uploaded by the developer apart from a release. |
 | Layout | Phone first, iPad second, desktop last |
+| Levels and retries | Retries are unlimited. A game passed at 80% or more unlocks its next level at once, with no waiting for tomorrow. |
 
 ## Rules that are easy to get wrong
 
 1. Levels, stars and streaks are derived from the days played, never stored as truth.
-2. Merge rules must give the same result in any order: the best score per game per day, and the later edit for profile fields.
+2. Merge rules must give the same result in any order: per game per day the larger of each field (best score, highest level passed, latest play), and the later edit for profile fields. A level is a maximum, never a replay of plays in order.
 3. An unknown ID and a wrong PIN get the same answer. No response carries a PIN hash, a salt or a token hash.
 4. Only `backend/src/data/schema.js` spells a key.
 5. A game never imports another game, the store or the sync code. It gets its settings and content through its props.
 6. Nothing needs an AWS account to build or test.
 7. Every pack type has its schema in `shared/schemas.js`; the publish script refuses a pack that fails it.
+8. Never use `window.confirm` or `alert` for a step that matters: in-app browsers and webviews may never show them. Ask in the page.
 
 ## Working agreements
 

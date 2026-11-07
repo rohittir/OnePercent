@@ -17,12 +17,12 @@ export async function newPlayer(page, { name, age, pin = '4821' }) {
 export const saved = (page) => expect(page.getByText('Saved ✓')).toBeVisible({ timeout: 20_000 })
 
 /**
- * Plays from the first game's intro, reading each answer off the screen like a careful child.
- * Runs in the page. Stops at the day-done screen or before starting game number games + 1.
- * @param {{ games: number, missFirst?: boolean }} options missFirst answers the very first round wrong
- * @returns {Promise<number>} how many games it started
+ * Plays one game from its intro, reading each answer off the screen like a careful child, and stops at its result screen.
+ * Runs in the page.
+ * @param {{ misses?: number }} options answer this many rounds wrong first
+ * @returns {Promise<number>} the rounds answered
  */
-export async function autoplay({ games, missFirst = false }) {
+export async function autoplay({ misses = 0 } = {}) {
   const wait = (/** @type {number} */ ms) => new Promise((resolve) => setTimeout(resolve, ms))
   /** @type {number[]} Echo's flashes, recorded as they light disabled tiles */
   const seen = []
@@ -33,18 +33,15 @@ export async function autoplay({ games, missFirst = false }) {
     }
   })
   observer.observe(/** @type {Node} */ (document.querySelector('main')), { subtree: true, attributes: true, attributeFilter: ['class'] })
-  let started = 0
   let answered = 0
   /** @type {Element | null} */
   let handled = null
   try {
     for (let step = 0; step < 5000; step++) {
       await wait(100)
-      if (document.querySelector('.done')) return started
+      if (document.querySelector('.result')) return answered
       const go = document.getElementById('go')
       if (go && document.querySelector('.intro')) {
-        if (started === games) return started
-        started++
         go.click()
         continue
       }
@@ -52,7 +49,7 @@ export async function autoplay({ games, missFirst = false }) {
       const round = area?.firstElementChild ?? null
       if (!area || !round || round === handled || area.classList.contains('right') || area.classList.contains('wrong')) continue
       const say = document.getElementById('say')?.textContent ?? ''
-      const wrong = missFirst && answered === 0
+      const wrong = answered < misses
       /** @param {string} selector */
       const all = (selector) => /** @type {HTMLElement[]} */ ([...area.querySelectorAll(selector)])
       if (say.startsWith('Your turn')) {

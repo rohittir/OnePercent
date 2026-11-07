@@ -2,7 +2,7 @@
 // The device's copy of every player on it, in localStorage. It is the source of truth on the device; sync.js shares it with the backend.
 import { useSyncExternalStore } from 'react'
 import { startLevels } from '@onepercent/shared/levels.js'
-import { betterResult, mergeDays, mergeProfile } from '@onepercent/shared/merge.js'
+import { mergeDays, mergeProfile, mergeResults } from '@onepercent/shared/merge.js'
 
 const KEY = 'onepercent:v1'
 
@@ -15,16 +15,22 @@ const KEY = 'onepercent:v1'
  *   days: Days, dirty: Record<string, number>, profileDirty: number, rev: number, syncedAt?: number, unlinked?: boolean,
  * }} Player
  *   dirty: dates changed since the last sync, each with a counter that grows on every change, so a sync clears only what it sent.
- * @typedef {{ players: Player[], current: string | null }} State
+ * @typedef {{ players: Player[], current: string | null, deletes: { code: string, token: string }[] }} State
+ *   deletes: players deleted on this device whose online copy is still to be deleted (sync.js does it when online)
  */
+
+const EMPTY = /** @type {State} */ ({ players: [], current: null, deletes: [] })
 
 /** @returns {State} */
 function read() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    if (saved && Array.isArray(saved.players)) return saved
+    if (saved && Array.isArray(saved.players)) {
+      // Results saved before 7 November 2026 had another shape; mergeDays reads them as today's.
+      return { ...EMPTY, ...saved, players: saved.players.map((/** @type {Player} */ p) => ({ ...p, days: mergeDays({}, p.days) })) }
+    }
   } catch { /* unreadable: start empty */ }
-  return { players: [], current: null }
+  return EMPTY
 }
 
 let state = read()
@@ -74,18 +80,18 @@ export function addPlayer({ name, age, pin }) {
     localId: crypto.randomUUID(), code: null, token: null, pin, name: name.trim(), age, muted: false, updatedAt: Date.now(),
     startLevels: startLevels(age), days: {}, dirty: {}, profileDirty: 1, rev: 0,
   }
-  commit({ players: [...state.players, player], current: player.localId })
+  commit({ ...state, players: [...state.players, player], current: player.localId })
   return player
 }
 
 /** @param {string | null} localId */
 export const selectPlayer = (localId) => commit({ ...state, current: localId })
 
-/** Keeps the better of an earlier and a new result for the same game and date. @param {string} localId @param {string} date @param {string} gameId @param {Result} result */
+/** One play of a game, merged into the date's result for it (best score, highest level passed). @param {string} localId @param {string} date @param {string} gameId @param {Result} result */
 export function recordResult(localId, date, gameId, result) {
   update(localId, (p) => ({
     ...p,
-    days: { ...p.days, [date]: { ...p.days[date], [gameId]: /** @type {Result} */ (betterResult(p.days[date]?.[gameId], result)) } },
+    days: { ...p.days, [date]: mergeResults(p.days[date], { [gameId]: result }) },
     dirty: { ...p.dirty, [date]: (p.dirty[date] ?? 0) + 1 },
   }))
 }
@@ -97,10 +103,20 @@ export const setPin = (localId, pin) => update(localId, (p) => ({ ...p, pin }))
 /** @param {string} localId */
 export const markUnlinked = (localId) => update(localId, (p) => ({ ...p, unlinked: true }))
 
-/** @param {string} localId */
+/** Gone from this device at once; the online copy is deleted by the next sync (sync.js), now if online. @param {string} localId */
 export function removePlayer(localId) {
-  commit({ players: state.players.filter((p) => p.localId !== localId), current: state.current === localId ? null : state.current })
+  const p = findPlayer(localId)
+  commit({
+    players: state.players.filter((x) => x.localId !== localId),
+    current: state.current === localId ? null : state.current,
+    deletes: p?.code && p.token && !p.unlinked ? [...state.deletes, { code: p.code, token: p.token }] : state.deletes,
+  })
 }
+
+/** A player made online after it was deleted here (its create was in flight). @param {string} code @param {string} token */
+export const queueDelete = (code, token) => commit({ ...state, deletes: [...state.deletes, { code, token }] })
+/** The online copy is gone. @param {string} code */
+export const deleteDone = (code) => commit({ ...state, deletes: state.deletes.filter((d) => d.code !== code) })
 
 /**
  * After a create or a sync: merge what came back, and clear only what didn't change while the request was out.
@@ -135,8 +151,8 @@ export function importPlayer({ code, token, pin, profile, startLevels: levels, d
   const player = {
     localId: crypto.randomUUID(), code, token, pin, ...profile, startLevels: levels, days, dirty: {}, profileDirty: 0, rev, syncedAt: Date.now(),
   }
-  commit({ players: [...state.players, player], current: player.localId })
+  commit({ ...state, players: [...state.players, player], current: player.localId })
 }
 
 /** Tests only: forget everything. */
-export const resetForTests = () => commit({ players: [], current: null })
+export const resetForTests = () => commit(EMPTY)

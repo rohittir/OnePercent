@@ -1,5 +1,5 @@
 // @ts-check
-// Today's games in the player's theme.
+// Today's games in the player's theme. Every game can be played again at any time; a pass (80%+) unlocks its next level at once.
 import { Link } from 'react-router'
 import { starsFor } from '@onepercent/shared/levels.js'
 import { progress } from '@onepercent/shared/progress.js'
@@ -18,10 +18,14 @@ export function Home({ player }) {
   const set = pickToday(GAMES, { age: player.age, date })
   const prog = progress(player, date)
   const results = player.days[date] ?? {}
-  const done = set.every((g) => results[g.id])
-  const day = done ? prog.daysPlayed : prog.daysPlayed + 1
+  const passedToday = (/** @type {import('../games/index.js').Game} */ g) => (results[g.id]?.top ?? -1) >= 0
+  const done = set.every(passedToday)
+  const next = set.find((g) => !passedToday(g)) ?? set[0]
+  const day = Object.keys(results).length ? prog.daysPlayed : prog.daysPlayed + 1
   const games = set.map((game) => ({
-    game, status: results[game.id] ? <Stars n={starsFor(results[game.id].score)} /> : `Level ${prog.levels[game.skill]}`,
+    game,
+    to: `/play/${game.id}`,
+    status: <>Level {prog.levels[game.skill]}{results[game.id] && <> · <Stars n={starsFor(results[game.id].best)} /></>}</>,
   }))
 
   return (
@@ -40,9 +44,8 @@ export function Home({ player }) {
         <section className="hero"><theme.HomeHero name={player.name} prog={prog} day={day} done={done} count={set.length} /></section>
         <section className="sheet">
           <theme.HomeGames games={games} day={day} done={done} />
-          {done
-            ? <p className="muted center">Come back tomorrow for your next 1% 🌱</p>
-            : <Link className="cta" id="play" to="/play/today" onClick={() => sound('tap')}>{theme.words.start}</Link>}
+          {done && <p className="muted center">{theme.words.allDone}</p>}
+          <Link className="cta" id="play" to={`/play/${next.id}`} onClick={() => sound('tap')}>{done ? theme.words.again : theme.words.start}</Link>
           <SyncStatus player={player} />
         </section>
       </div>

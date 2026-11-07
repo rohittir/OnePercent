@@ -3,7 +3,7 @@
 // on open, soon after a change, every 5 minutes, when the page hides and when the network returns. Play never waits for it.
 import { MAX_DAYS } from '@onepercent/shared/schemas.js'
 import * as api from './api.js'
-import { applySync, findPlayer, getState, markUnlinked } from './store.js'
+import { applySync, deleteDone, findPlayer, getState, markUnlinked, queueDelete } from './store.js'
 
 const EVERY_MS = 5 * 60_000
 const SOON_MS = 2_000
@@ -22,6 +22,7 @@ function schedule(ms) {
 
 async function run() {
   try {
+    for (const { code, token } of getState().deletes) await deleteOnline(code, token)
     for (const { localId } of getState().players) await syncOne(localId)
     failures = 0
   } catch {
@@ -45,6 +46,16 @@ export function requestSync() {
   if (!failures) schedule(SOON_MS)
 }
 
+/** A player deleted on this device: delete its online copy. Already gone (401) counts as done. @param {string} code @param {string} token */
+async function deleteOnline(code, token) {
+  try {
+    await api.deletePlayer(code, token)
+  } catch (err) {
+    if (/** @type {any} */ (err).status !== 401) throw err
+  }
+  deleteDone(code)
+}
+
 /** @param {string} localId */
 async function syncOne(localId) {
   const p = findPlayer(localId)
@@ -57,6 +68,8 @@ async function syncOne(localId) {
     const res = p.code && p.token
       ? await api.syncPlayer(p.code, p.token, { since: p.rev, days, ...(p.profileDirty ? { profile } : {}) })
       : await api.createPlayer({ profile, startLevels: p.startLevels, pin: p.pin, days })
+    // Deleted here while its create was out: the new online copy goes too.
+    if (!findPlayer(localId)) return res.code && res.token ? queueDelete(res.code, res.token) : undefined
     applySync(localId, sent, res)
   } catch (err) {
     // The token no longer opens the player (deleted on another device): stop trying; Settings offers to join again.

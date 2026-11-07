@@ -1,7 +1,6 @@
 // @ts-check
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
-import { Done } from './screens/Done.jsx'
 import { Home } from './screens/Home.jsx'
 import { Join } from './screens/Join.jsx'
 import { Move } from './screens/Move.jsx'
@@ -30,8 +29,7 @@ export function App() {
       <Route path="/new" element={<NewPlayer />} />
       <Route path="/join" element={<Join />} />
       <Route path="/play" element={<WithPlayer screen={Home} />} />
-      <Route path="/play/today" element={<WithPlayer screen={Session} />} />
-      <Route path="/done" element={<WithPlayer screen={Done} />} />
+      <Route path="/play/:gameId" element={<WithPlayer screen={Session} />} />
       <Route path="/move" element={<WithPlayer screen={Move} />} />
       <Route path="/settings" element={<WithPlayer screen={Settings} />} />
       <Route path="*" element={<Navigate to="/" replace />} />

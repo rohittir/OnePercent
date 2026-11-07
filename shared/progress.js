@@ -1,6 +1,7 @@
 // @ts-check
-// Levels, stars, streak and days played, derived from the days a player has played (CLAUDE.md, rule 1). Never stored.
-import { nextLevel, SKILLS, starsFor } from './levels.js'
+// Levels, stars, streak and growth, derived from the days a player has played (CLAUDE.md, rule 1). Never stored.
+import { normalizeResult } from './merge.js'
+import { starsFor } from './levels.js'
 
 /** @typedef {import('./merge.js').Days} Days */
 
@@ -11,44 +12,41 @@ export const addDays = (date, delta) => new Date(Date.parse(`${date}T00:00:00Z`)
 export const dayNumber = (date) => Math.floor(Date.parse(`${date}T00:00:00Z`) / DAY_MS)
 
 /**
- * Replays the days in date order. Each skill moves once a day, by the best score of that skill that day.
+ * Each skill's level: one above the highest level passed in it, or its start level. It rises the moment a game is passed,
+ * never falls, and does not depend on the order plays arrive in.
  * @param {Record<string, number>} startLevels
  * @param {Days} days
- * @param {string} [before] only days before this date
  * @returns {Record<string, number>}
  */
-export function levelsAt(startLevels, days, before) {
+export function levelsOf(startLevels, days) {
   const levels = { ...startLevels }
-  for (const date of Object.keys(days).sort()) {
-    if (before && date >= before) break
-    /** @type {Record<string, number>} */
-    const best = {}
-    for (const { skill, score } of Object.values(days[date])) best[skill] = Math.max(best[skill] ?? 0, score)
-    for (const [skill, score] of Object.entries(best)) levels[skill] = nextLevel(levels[skill] ?? 0, score)
+  for (const results of Object.values(days)) {
+    for (const raw of Object.values(results)) {
+      const { skill, top } = normalizeResult(raw)
+      if (top >= 0) levels[skill] = Math.max(levels[skill] ?? 0, top + 1)
+    }
   }
   return levels
 }
-
-/** @param {import('./merge.js').Results | undefined} results a date's results @returns {boolean} true when every skill was played */
-export const isComplete = (results) => SKILLS.every((skill) => Object.values(results ?? {}).some((r) => r.skill === skill))
 
 /**
  * @param {{ startLevels: Record<string, number>, days: Days }} player
  * @param {string} today YYYY-MM-DD on the device
  */
 export function progress({ startLevels, days }, today) {
-  const complete = Object.keys(days).filter((date) => isComplete(days[date]))
+  const levels = levelsOf(startLevels, days)
+  const played = (/** @type {string} */ date) => Object.keys(days[date] ?? {}).length > 0
   let streak = 0
-  for (let date = isComplete(days[today]) ? today : addDays(today, -1); isComplete(days[date]); date = addDays(date, -1)) streak++
+  for (let date = played(today) ? today : addDays(today, -1); played(date); date = addDays(date, -1)) streak++
+  const gained = Object.keys(levels).reduce((sum, skill) => sum + levels[skill] - (startLevels[skill] ?? 0), 0)
   return {
-    /** Levels to play today at: every day before today. */
-    levels: levelsAt(startLevels, days, today),
-    /** Levels after today's results, for tomorrow. */
-    nextLevels: levelsAt(startLevels, days),
-    stars: Object.values(days).flatMap((results) => Object.values(results)).reduce((sum, r) => sum + starsFor(r.score), 0),
-    daysPlayed: complete.length,
+    levels,
+    /** One star to three per game per day, for that day's best score. */
+    stars: Object.values(days).flatMap((results) => Object.values(results)).reduce((sum, r) => sum + starsFor(normalizeResult(r).best), 0),
+    daysPlayed: Object.keys(days).filter(played).length,
     streak,
-    /** 1% a day: 1.01 to the power of the days played. */
-    growth: 1.01 ** complete.length,
+    /** Levels passed since day one, over every skill: each one is 1%. */
+    gained,
+    growth: 1.01 ** gained,
   }
 }

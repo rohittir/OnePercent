@@ -8,8 +8,9 @@ test('J2: another device joins by ID and PIN, or by the QR link, and sees the pr
   await newPlayer(a, { name: 'Arjun', age: 12, pin: '2468' })
   await expect(a.getByText('Mission 1')).toBeVisible() // over 10: the galaxy
   await a.locator('#play').click()
-  expect(await a.evaluate(autoplay, { games: 1 })).toBe(1)
-  await a.goto('/play')
+  await a.evaluate(autoplay, {})
+  await expect(a.getByRole('heading', { name: 'Level 26 unlocked!' })).toBeVisible() // age 12 starts at level 25
+  await a.locator('#home').click()
   await saved(a)
 
   await a.goto('/move')
@@ -25,7 +26,9 @@ test('J2: another device joins by ID and PIN, or by the QR link, and sees the pr
   await typed.getByLabel('Your PIN').fill('2468')
   await typed.getByRole('button', { name: 'Join' }).click()
   await expect(typed.getByText('Mission 1')).toBeVisible()
-  await expect(typed.locator('.planet').first().getByRole('img', { name: /of 3 stars/ })).toBeVisible() // Echo, played on device A
+  const echo = typed.locator('a.planet', { hasText: 'Echo' })
+  await expect(echo).toContainText('Level 26') // passed on device A
+  await expect(echo.getByRole('img', { name: '3 of 3 stars' })).toBeVisible()
 
   const scanned = await (await browser.newContext(phone)).newPage()
   await scanned.goto(`/join#${code}.2468`)

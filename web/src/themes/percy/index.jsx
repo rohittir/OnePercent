@@ -1,11 +1,12 @@
 // @ts-check
-// Ages 7–10: Percy and pals. Percy's sprout grows 1% for every day played.
+// Ages 7–10: Percy and pals. Percy's sprout grows 1% for every level passed.
+import { Link } from 'react-router'
 import './theme.css'
 
-/** @param {{ days?: number, className?: string }} props */
-export function Percy({ days = 0, className = '' }) {
-  // shortcut: growth caps at 1.8× (about day 60); add new stages (more leaves, a flower) for long streaks.
-  const g = Math.min(1.8, 1.01 ** days)
+/** @param {{ grown?: number, className?: string }} props grown: levels passed since day one */
+export function Percy({ grown = 0, className = '' }) {
+  // shortcut: growth caps at 1.8× (about 60 levels passed); add new stages (more leaves, a flower) for long runs.
+  const g = Math.min(1.8, 1.01 ** grown)
   return (
     <svg className={`percy ${className}`} viewBox="0 -20 100 120" aria-hidden="true">
       <g transform={`translate(50 30) scale(${g}) translate(-50 -30)`}>
@@ -27,16 +28,21 @@ export function Percy({ days = 0, className = '' }) {
 export default {
   id: 'percy',
   words: {
-    start: 'Play ▶', bye: 'See you tomorrow 👋',
+    start: 'Play ▶', again: 'Play again ▶', grew: 'Percy grew 1%! 🌱', allDone: 'All passed today! Every pass is another 1% 🌱',
     good: ['Nice!', 'Wow!', 'You got it!', 'Super!', 'Brainy!'], bad: ['Oops! Next one!', 'Almost!', 'Keep going!'],
   },
   stat: (prog) => `⭐ ${prog.stars}`,
   Face: () => <Percy />,
-  Coach: ({ days, mood }) => <div className="buddy"><Percy days={days} className={mood === 'right' ? 'hop' : mood === 'wrong' ? 'shake' : ''} /></div>,
+  Coach: ({ grown, mood }) => <div className="buddy"><Percy grown={grown} className={mood === 'right' ? 'hop' : mood === 'wrong' ? 'shake' : ''} /></div>,
+  Cheer: ({ grown, ok }) => (
+    <div className="buddy">
+      <div className="grown"><Percy grown={grown} className={ok ? 'hop' : 'shake'} />{ok && <span className="pill up-chip">+1%</span>}</div>
+    </div>
+  ),
   HomeHero: ({ name, prog, done }) => (
     <>
-      <div className="bubble">{done ? 'Great job today! See you tomorrow 🌙' : `Ready to grow, ${name}?`}</div>
-      <div className="buddy"><Percy days={prog.daysPlayed} /></div>
+      <div className="bubble">{done ? 'You passed them all today! Want to grow more?' : `Ready to grow, ${name}?`}</div>
+      <div className="buddy"><Percy grown={prog.gained} /></div>
       <div className="ground" />
     </>
   ),
@@ -44,19 +50,12 @@ export default {
     <>
       <div className="sheet-h"><b>Today's 1%</b><span className="muted">Day {day}</span></div>
       <div className="tiles">
-        {games.map(({ game, status }) => (
-          <div key={game.id} className="tile" style={/** @type {any} */ ({ '--c': game.color[0], '--e': game.color[1] })}>
-            <span className="ic">{game.icon}</span><b>{game.name}</b><small>{status}</small>
-          </div>
+        {games.map(({ game, status, to }) => (
+          <Link key={game.id} className="tile" to={to} style={/** @type {any} */ ({ '--c': game.color[0], '--e': game.color[1] })}>
+            <span className="ic" aria-hidden="true">{game.icon}</span><b>{game.name}</b><small>{status}</small>
+          </Link>
         ))}
       </div>
-    </>
-  ),
-  DoneHero: ({ prog }) => (
-    <>
-      <h1>Day {prog.daysPlayed} done!</h1>
-      <div className="buddy"><div className="grown"><Percy days={prog.daysPlayed} /><span className="pill up-chip">+1%</span></div></div>
-      <p className="muted">Percy grew 1% today 🌱</p>
     </>
   ),
 }

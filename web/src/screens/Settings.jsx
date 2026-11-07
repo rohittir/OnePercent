@@ -1,10 +1,11 @@
 // @ts-check
 // Sound, another device, the PIN, and deleting the player.
+// No window.confirm: in-app browsers and some webviews never show it (it returns false at once), so deleting asks in the page.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { changePin, deletePlayer } from '../api.js'
+import { changePin } from '../api.js'
 import { removePlayer, setMuted, setPin } from '../store.js'
-import { requestSync } from '../sync.js'
+import { requestSync, syncAll } from '../sync.js'
 import { useTheme } from '../themes/index.js'
 
 /** @param {{ player: import('../store.js').Player }} props */
@@ -12,6 +13,7 @@ export function Settings({ player }) {
   useTheme(player.age)
   const navigate = useNavigate()
   const [note, setNote] = useState('')
+  const [confirming, setConfirming] = useState(false)
 
   /** @param {import('react').FormEvent<HTMLFormElement>} e */
   async function savePin(e) {
@@ -29,15 +31,10 @@ export function Settings({ player }) {
     }
   }
 
-  async function remove() {
-    if (!confirm(`Delete ${player.name} and all their progress, here and online? This can't be undone.`)) return
-    try {
-      if (player.code && player.token && !player.unlinked) await deletePlayer(player.code, player.token)
-    } catch {
-      setNote('You need the internet to delete the online copy.')
-      return
-    }
+  // Gone from this device at once; the online copy is deleted now, or by the first sync once the device is online.
+  function remove() {
     removePlayer(player.localId)
+    void syncAll()
     navigate('/', { replace: true })
   }
 
@@ -59,7 +56,15 @@ export function Settings({ player }) {
         <button className="chunk">Change PIN</button>
       </form>
       {note && <p className="muted" role="status">{note}</p>}
-      <button className="ghost danger" onClick={() => void remove()}>Delete {player.name}</button>
+      {confirming ? (
+        <div className="card" role="alertdialog" aria-labelledby="delete-q">
+          <p id="delete-q"><b>Delete {player.name} and all their progress, here and online?</b> This can't be undone.</p>
+          <button className="chunk danger-fill" onClick={remove}>Yes, delete {player.name}</button>
+          <button className="ghost" onClick={() => setConfirming(false)}>Keep {player.name}</button>
+        </div>
+      ) : (
+        <button className="ghost danger" onClick={() => setConfirming(true)}>Delete {player.name}</button>
+      )}
       <Link className="ghost" to="/play">Back</Link>
     </div>
   )

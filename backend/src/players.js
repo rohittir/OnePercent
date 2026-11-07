@@ -2,7 +2,7 @@
 // The player routes (docs/ARCHITECTURE.md, "API").
 import { randomInt } from 'node:crypto'
 import { makeCode } from '@onepercent/shared/ids.js'
-import { mergeResults } from '@onepercent/shared/merge.js'
+import { mergeResults, sameResult } from '@onepercent/shared/merge.js'
 import { ClaimBody, Code, CreateBody, PinBody, SyncBody } from '@onepercent/shared/schemas.js'
 import * as repo from './data/players.js'
 import { clock, HttpError, parse } from './lib/http.js'
@@ -94,7 +94,7 @@ async function authed(req) {
 }
 
 /**
- * Merges incoming days into the stored ones (best score per game), then answers with the profile, every day with a rev above `since`,
+ * Merges incoming days into the stored ones (shared/merge.js), then answers with the profile, every day with a rev above `since`,
  * and the rev to send next time. Reading the rev before the days means no day at or under it can be missed (data/players.js, writeDays).
  * @param {string} code
  * @param {Record<string, Record<string, any>>} incoming
@@ -111,8 +111,8 @@ async function syncDays(code, incoming, since) {
       for (const date of chunk) {
         const before = stored.get(date)
         const merged = mergeResults(before?.results, incoming[date])
-        // mergeResults keeps the stored object when it wins, so nothing new means the same objects.
-        if (before && Object.keys(merged).every((id) => merged[id] === before.results[id])) continue
+        // Nothing new: every merged result equals the stored one (a stored result of the old shape is rewritten in today's).
+        if (before && Object.keys(merged).every((id) => before.results[id] && sameResult(merged[id], before.results[id]))) continue
         writes.push({ date, results: merged, seenRev: before?.rev ?? null })
       }
       if (!writes.length || (await repo.writeDays(code, player.rev, writes)) !== null) break
